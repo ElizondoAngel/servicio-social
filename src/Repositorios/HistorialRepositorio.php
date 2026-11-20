@@ -25,4 +25,15 @@ final class HistorialRepositorio
                 $detalle === null ? null : json_encode($detalle, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
                 $motivo, $ip, $agente === null ? null : mb_substr($agente, 0, 255)]);
     }
+
+    /** Últimos movimientos de un expediente con el nombre de quien los hizo. */
+    public function deExpediente(int $expedienteId, int $limite = 60): array
+    {
+        $q = $this->pdo->prepare('SELECT h.id, h.accion, h.entidad, h.entidad_id, h.antes, h.despues, h.motivo, h.creado_en,
+                                         h.usuario_bd, u.nombre AS usuario
+                                    FROM historial h LEFT JOIN usuarios u ON u.id = h.usuario_id
+                                   WHERE h.expediente_id = ? ORDER BY h.id DESC LIMIT ' . max(1, min(500, $limite)));
+        $q->execute([$expedienteId]);
+        return $q->fetchAll();
+    }
 }

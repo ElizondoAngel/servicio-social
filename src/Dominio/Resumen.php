@@ -46,6 +46,8 @@ final class Resumen
         public readonly int $excedente,
         public readonly bool $rebasaAutorizada,
         public readonly array $feriadosPorConfirmar,
+        /** Fechas futuras que la proyección cuenta (para marcarlas en el calendario). */
+        public readonly array $diasProyectados,
         public readonly string $situacion,
         public readonly bool $puedeConcluir,
         public readonly ?string $motivoNoConcluir,

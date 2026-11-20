@@ -18,7 +18,12 @@ $tonos = ['ok' => 'pill-ok', 'info' => 'pill-info', 'aviso' => 'pill-aviso', 'ma
   </dl>
 </section>
 
-<h2>Expedientes</h2>
+<div class="fila-entre">
+  <h2>Expedientes</h2>
+  <?php if (!array_filter($expedientes, fn($x) => in_array($x['estado'], ['activo', 'suspendido'], true))): ?>
+    <a class="btn primario" href="/alumnos/<?= (int)$alumno['id'] ?>/expedientes/nuevo">Abrir nuevo periodo</a>
+  <?php endif; ?>
+</div>
 <div class="tarjetas">
 <?php foreach ($expedientes as $x): $r = $x['resumen']; ?>
   <article class="panel tarjeta-expediente">

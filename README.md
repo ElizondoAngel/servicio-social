@@ -12,7 +12,10 @@ El diseño técnico completo (tablas, reglas, cálculos, seguridad y respaldos) 
 | 2. Base de datos | SQL listo y verificado en MariaDB 10.11 (63 pruebas). Falta confirmar la versión del servidor con TI |
 | 3. Autenticación | Lista: inicio y cierre de sesión, inactividad, protección de rutas, CSRF, límite de intentos y recuperación por correo (54 pruebas) |
 | 4. Dashboard y alumnos | Listo: tablero con estadísticas, búsqueda y filtros; alta de alumno con su expediente; edición; ficha del alumno y resumen del expediente con la Calculadora (48 pruebas) |
-| 5. Calendario de asistencia | Pendiente |
+| 5. Expediente y calendario | Listo: datos y ajustes arriba; calendario por hojas, meses y semanas; captura de asistencia, falta, feriado o pendiente con correcciones (motivo), control de versión, autorizaciones, firmas semanales, feriados del catálogo, estados (suspender, baja, concluir, reabrir), nuevo periodo, catálogo de días inhábiles e historial del expediente (72 pruebas) |
+| 6. Cálculos y proyecciones | Pendiente (la Calculadora ya existe y está probada) |
+| 7. Historial, respaldos y recuperación | Pendiente |
+| 8. Pruebas, seguridad y despliegue | Pendiente |
 
 ## Requisitos
 
@@ -83,6 +86,8 @@ tools/probar_todo.sh
 | Unidad | `tests/unidad/calculadora.php` | Horas acreditadas y trabajadas, feriados, cierres, 6 meses, proyección y situación (casos A–I y límites) |
 | Punta a punta | `tests/e2e/autenticacion.php` | Un servidor real con `php -S`: login, bloqueo por intentos, cierre por inactividad, recuperación de contraseña, HTTPS |
 | Punta a punta | `tests/e2e/alumnos.php` | Tablero, alta con validaciones, matrícula repetida, edición con motivo, búsqueda, filtros, escapado de HTML |
+| Unidad | `tests/unidad/calendario.php` | Hojas de 12 semanas, estados y marcas de cada día, totales, firmas y días proyectados |
+| Punta a punta | `tests/e2e/expediente.php` | Captura y corrección de días, duplicados y conflictos de versión, autorizaciones, firmas, catálogo, datos del expediente, estados, nuevo periodo, concluir y reabrir |
 
 Solo usan datos ficticios. Las pruebas no necesitan Composer.
 
@@ -99,9 +104,9 @@ public/            única carpeta visible: index.php y assets/
 src/Nucleo/        arranque, router, peticiones, respuestas, vistas, base de datos
 src/Seguridad/     sesión, CSRF, permisos, límite de intentos, contraseñas
 src/Repositorios/  únicas clases que escriben SQL
-src/Servicios/     reglas de negocio con transacciones (autenticación, recuperación, correo)
+src/Servicios/     reglas de negocio con transacciones (autenticación, alumnos, asistencia, expediente, catálogo)
 src/Controladores/ reciben la petición, validan y responden
-src/Dominio/       reglas sin base de datos (Periodo; Calculadora en la Etapa 6)
+src/Dominio/       reglas sin base de datos (Periodo, Calculadora, Calendario)
 storage/           respaldos, sesiones y logs (fuera de git)
 tests/             pruebas
 tools/             utilidades de desarrollo

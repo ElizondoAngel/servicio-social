@@ -36,6 +36,34 @@ final class ExpedienteRepositorio
         return (int)$this->pdo->lastInsertId();
     }
 
+    /** Expediente abierto (activo o suspendido) del alumno, si tiene. */
+    public function abiertoDeAlumno(int $alumnoId): ?array
+    {
+        $q = $this->pdo->prepare("SELECT * FROM expedientes WHERE alumno_id = ? AND estado IN ('activo', 'suspendido')");
+        $q->execute([$alumnoId]);
+        return $q->fetch() ?: null;
+    }
+
+    public const CAMPOS_EDITABLES = ['unidad_administrativa', 'responsable', 'hora_entrada', 'hora_salida', 'fecha_inicio',
+        'fecha_fin_autorizada', 'jornada_prevista', 'feriados_acreditan', 'horas_por_feriado', 'observaciones'];
+
+    /** Actualiza solo si la versión coincide (nadie lo cambió mientras se editaba). */
+    public function actualizarDatos(int $id, int $version, array $d): bool
+    {
+        $sets = implode(', ', array_map(fn($c) => "$c = ?", self::CAMPOS_EDITABLES));
+        $q = $this->pdo->prepare("UPDATE expedientes SET $sets WHERE id = ? AND version = ?");
+        $q->execute(array_merge(array_map(fn($c) => $d[$c] ?? null, self::CAMPOS_EDITABLES), [$id, $version]));
+        return $q->rowCount() === 1;
+    }
+
+    public function cambiarEstado(int $id, int $version, string $estado, ?string $fechaConclusion, ?array $resumen): bool
+    {
+        $q = $this->pdo->prepare('UPDATE expedientes SET estado = ?, fecha_conclusion = ?, resumen_conclusion = ? WHERE id = ? AND version = ?');
+        $q->execute([$estado, $fechaConclusion,
+            $resumen === null ? null : json_encode($resumen, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), $id, $version]);
+        return $q->rowCount() === 1;
+    }
+
     /**
      * Un expediente por alumno no archivado para el tablero: el abierto
      * (activo o suspendido) o, si no hay, el más reciente.

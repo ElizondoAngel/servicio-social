@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 namespace ServicioSocial\Servicios;
 
-use DateTimeImmutable;
 use PDOException;
-use ServicioSocial\Dominio\Periodo;
 use ServicioSocial\Nucleo\BaseDatos;
 use ServicioSocial\Repositorios\AlumnoRepositorio;
 use ServicioSocial\Repositorios\ConfiguracionRepositorio;
@@ -26,6 +24,7 @@ final class AlumnoServicio
         private readonly AlumnoRepositorio $alumnos,
         private readonly ExpedienteRepositorio $expedientes,
         private readonly ConfiguracionRepositorio $config,
+        private readonly ReglasExpediente $reglas,
     ) {
     }
 
@@ -47,31 +46,8 @@ final class AlumnoServicio
     public function registrar(array $entrada, int $usuarioId): array
     {
         $v = $this->validarAlumno($entrada);
-        $v->texto('unidad_administrativa', 'la unidad administrativa', 150)
-          ->texto('responsable', 'el nombre del responsable', 150)
-          ->hora('hora_entrada', 'la hora de entrada')
-          ->hora('hora_salida', 'la hora de salida')
-          ->fecha('fecha_inicio', 'la fecha de inicio')
-          ->fecha('fecha_fin_autorizada', 'la fecha de término autorizada', false)
-          ->opcionEntera('jornada_prevista', 'la jornada prevista', $this->jornadasPermitidas(), $this->config->entero('jornada_prevista', 4))
-          ->casilla('feriados_acreditan')
-          ->opcionEntera('horas_por_feriado', 'las horas por feriado', [0, 1, 2, 3, 4, 5, 6], $this->config->entero('horas_por_feriado', 4))
-          ->texto('observaciones', 'las observaciones', 1000, false);
-
-        $d = $v->limpios();
-        if (($d['hora_entrada'] === null) !== ($d['hora_salida'] === null)) {
-            $v->agregarError('hora_salida', 'Escribe la hora de entrada y la de salida, o deja las dos vacías.');
-        } elseif ($d['hora_entrada'] !== null && $d['hora_salida'] <= $d['hora_entrada']) {
-            $v->agregarError('hora_salida', 'La hora de salida debe ser después de la de entrada.');
-        }
-
+        $d = $this->reglas->validar($v);
         $meses = $this->config->entero('meses_requeridos', 6);
-        if ($d['fecha_inicio'] !== null) {
-            $d['fecha_fin_autorizada'] ??= Periodo::fechaCumplimiento(new DateTimeImmutable($d['fecha_inicio']), $meses)->format('Y-m-d');
-            if ($d['fecha_fin_autorizada'] <= $d['fecha_inicio']) {
-                $v->agregarError('fecha_fin_autorizada', 'La fecha de término debe ser posterior a la fecha de inicio.');
-            }
-        }
         if ($d['matricula'] !== null && $this->alumnos->idPorMatricula($d['matricula']) !== null) {
             $v->agregarError('matricula', 'Ya existe un alumno con esa matrícula.');
         }
@@ -136,11 +112,5 @@ final class AlumnoServicio
             ->texto('institucion', 'la institución', 150)
             ->correo('correo')
             ->telefono('telefono');
-    }
-
-    private function jornadasPermitidas(): array
-    {
-        $lista = array_map('intval', explode(',', $this->config->texto('jornadas_permitidas', '4,5,6')));
-        return array_values(array_filter($lista, fn($h) => $h >= 4 && $h <= 6)) ?: [4, 5, 6];
     }
 }

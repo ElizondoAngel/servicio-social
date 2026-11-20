@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 use ServicioSocial\Controladores\AuthControlador;
 use ServicioSocial\Controladores\AlumnoControlador;
+use ServicioSocial\Controladores\CatalogoControlador;
 use ServicioSocial\Controladores\DashboardControlador;
 use ServicioSocial\Controladores\ExpedienteControlador;
 use ServicioSocial\Nucleo\Aplicacion;
@@ -21,6 +22,7 @@ use ServicioSocial\Repositorios\AsistenciaRepositorio;
 use ServicioSocial\Repositorios\ConfiguracionRepositorio;
 use ServicioSocial\Repositorios\DiaInhabilRepositorio;
 use ServicioSocial\Repositorios\ExpedienteRepositorio;
+use ServicioSocial\Repositorios\FirmaRepositorio;
 use ServicioSocial\Repositorios\HistorialRepositorio;
 use ServicioSocial\Repositorios\IntentoLoginRepositorio;
 use ServicioSocial\Repositorios\TokenResetRepositorio;
@@ -29,6 +31,10 @@ use ServicioSocial\Seguridad\Csrf;
 use ServicioSocial\Seguridad\LimiteIntentos;
 use ServicioSocial\Seguridad\Sesion;
 use ServicioSocial\Servicios\AlumnoServicio;
+use ServicioSocial\Servicios\AsistenciaServicio;
+use ServicioSocial\Servicios\CatalogoServicio;
+use ServicioSocial\Servicios\GestionExpedienteServicio;
+use ServicioSocial\Servicios\ReglasExpediente;
 use ServicioSocial\Servicios\AuthServicio;
 use ServicioSocial\Servicios\ExpedienteServicio;
 use ServicioSocial\Servicios\Correo\CorreoArchivo;
@@ -63,13 +69,21 @@ function crearAplicacion(Config $config): Aplicacion
 
     $alumnos = new AlumnoRepositorio($pdo);
     $expedientes = new ExpedienteRepositorio($pdo);
-    $calculos = new ExpedienteServicio($expedientes, new AsistenciaRepositorio($pdo), new DiaInhabilRepositorio($pdo), $configuracion);
-    $alumnoServicio = new AlumnoServicio($bd, $alumnos, $expedientes, $configuracion);
+    $asistencias = new AsistenciaRepositorio($pdo);
+    $dias = new DiaInhabilRepositorio($pdo);
+    $firmas = new FirmaRepositorio($pdo);
+    $reglas = new ReglasExpediente($configuracion);
+    $calculos = new ExpedienteServicio($expedientes, $asistencias, $dias, $configuracion, $firmas);
+    $alumnoServicio = new AlumnoServicio($bd, $alumnos, $expedientes, $configuracion, $reglas);
+    $asistenciaServicio = new AsistenciaServicio($bd, $asistencias, $dias, $firmas, $reglas);
+    $gestion = new GestionExpedienteServicio($bd, $expedientes, $asistencias, $configuracion, $reglas);
 
     $authCtl = new AuthControlador($vista, $sesion, $csrf, $auth, $recuperacion);
     $tableroCtl = new DashboardControlador($vista, $sesion, $calculos);
     $alumnoCtl = new AlumnoControlador($vista, $sesion, $alumnoServicio, $alumnos, $expedientes, $calculos, $usuarios);
-    $expedienteCtl = new ExpedienteControlador($vista, $expedientes, $alumnos, $calculos);
+    $expedienteCtl = new ExpedienteControlador($vista, $sesion, $expedientes, $alumnos, $usuarios, $historial, $calculos,
+        $asistenciaServicio, $gestion, $reglas);
+    $catalogoCtl = new CatalogoControlador($vista, $sesion, new CatalogoServicio($bd, $dias), $dias);
 
     $r = new Router();
     $r->get('/login', [$authCtl, 'mostrarLogin'], ['publico' => true]);
@@ -87,7 +101,18 @@ function crearAplicacion(Config $config): Aplicacion
     $r->get('/alumnos/{id}', [$alumnoCtl, 'ver'], ['permiso' => 'alumnos.ver']);
     $r->get('/alumnos/{id}/editar', [$alumnoCtl, 'editar'], ['permiso' => 'alumnos.editar']);
     $r->post('/alumnos/{id}/editar', [$alumnoCtl, 'actualizar'], ['permiso' => 'alumnos.editar']);
+    $r->get('/alumnos/{id}/expedientes/nuevo', [$expedienteCtl, 'nuevoPeriodo'], ['permiso' => 'expedientes.crear']);
+    $r->post('/alumnos/{id}/expedientes/nuevo', [$expedienteCtl, 'abrirPeriodo'], ['permiso' => 'expedientes.crear']);
     $r->get('/expedientes/{id}', [$expedienteCtl, 'ver'], ['permiso' => 'expedientes.ver']);
+    $r->get('/expedientes/{id}/dia', [$expedienteCtl, 'dia'], ['permiso' => 'asistencias.registrar']);
+    $r->post('/expedientes/{id}/dia', [$expedienteCtl, 'guardarDia'], ['permiso' => 'asistencias.registrar']);
+    $r->post('/expedientes/{id}/firmas', [$expedienteCtl, 'firma'], ['permiso' => 'asistencias.registrar']);
+    $r->post('/expedientes/{id}/feriados', [$expedienteCtl, 'confirmarFeriados'], ['permiso' => 'asistencias.registrar']);
+    $r->post('/expedientes/{id}/datos', [$expedienteCtl, 'actualizarDatos'], ['permiso' => 'expedientes.editar']);
+    $r->post('/expedientes/{id}/estado', [$expedienteCtl, 'cambiarEstado'], ['permiso' => 'expedientes.estado']);
+    $r->get('/dias-inhabiles', [$catalogoCtl, 'index'], ['permiso' => 'catalogo.ver']);
+    $r->post('/dias-inhabiles', [$catalogoCtl, 'agregar'], ['permiso' => 'catalogo.editar']);
+    $r->post('/dias-inhabiles/{id}/quitar', [$catalogoCtl, 'quitar'], ['permiso' => 'catalogo.editar']);
 
     return new Aplicacion($config, $r, $bd, $sesion, $csrf, $vista, $usuarios, $configuracion, $auth);
 }

@@ -5,11 +5,13 @@ namespace ServicioSocial\Servicios;
 
 use DateTimeImmutable;
 use ServicioSocial\Dominio\Calculadora;
+use ServicioSocial\Dominio\Calendario;
 use ServicioSocial\Dominio\Resumen;
 use ServicioSocial\Repositorios\AsistenciaRepositorio;
 use ServicioSocial\Repositorios\ConfiguracionRepositorio;
 use ServicioSocial\Repositorios\DiaInhabilRepositorio;
 use ServicioSocial\Repositorios\ExpedienteRepositorio;
+use ServicioSocial\Repositorios\FirmaRepositorio;
 
 /**
  * Arma los resúmenes de expedientes con la Calculadora (tablero y fichas).
@@ -25,6 +27,7 @@ final class ExpedienteServicio
         private readonly AsistenciaRepositorio $asistencias,
         private readonly DiaInhabilRepositorio $dias,
         private readonly ConfiguracionRepositorio $config,
+        private readonly FirmaRepositorio $firmas,
     ) {
     }
 
@@ -84,5 +87,29 @@ final class ExpedienteServicio
             ],
             'filas' => $filas,
         ];
+    }
+
+    /**
+     * Todo lo que necesita la página del expediente: resumen, registros
+     * completos y la cuadrícula del calendario.
+     */
+    public function detalle(array $exp): array
+    {
+        $registros = $this->asistencias->deExpediente((int)$exp['id']);
+        $resumen = $this->resumir($exp, array_values($registros));
+        $hojas = Calendario::construir($exp, $registros, $this->inhabiles ??= $this->dias->mapa(), $resumen->diasProyectados,
+            $this->firmas->deExpediente((int)$exp['id']), $this->hoy(), $resumen->fechaEstimada);
+        return ['resumen' => $resumen, 'registros' => $registros, 'hojas' => $hojas];
+    }
+
+    /** Expediente anterior y siguiente en el orden del tablero (para navegar). */
+    public function vecinos(int $alumnoId): array
+    {
+        $lista = $this->expedientes->vigentes();
+        $i = array_search($alumnoId, array_map('intval', array_column($lista, 'alumno_id')), true);
+        if ($i === false) {
+            return ['anterior' => null, 'siguiente' => null];
+        }
+        return ['anterior' => $lista[$i - 1] ?? null, 'siguiente' => $lista[$i + 1] ?? null];
     }
 }

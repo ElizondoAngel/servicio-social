@@ -17,6 +17,7 @@
       <nav class="nav" aria-label="Principal">
         <a href="/">Expedientes</a>
         <a href="/alumnos/nuevo">Registrar alumno</a>
+        <a href="/dias-inhabiles">Días inhábiles</a>
       </nav>
     </div>
     <div class="barra-usuario">

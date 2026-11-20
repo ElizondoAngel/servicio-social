@@ -76,6 +76,7 @@ final class Calculadora
         // --- Proyección ------------------------------------------------------
         $fechaEstimada = $fechaHorasCumplidas;
         $diasRestantes = 0;
+        $proyectados = [];
         $excedente = 0;
         if ($restantes > 0 && !in_array($estado, ['suspendido', 'concluido', 'baja'], true)) {
             $fechaEstimada = null;
@@ -93,10 +94,12 @@ final class Calculadora
                 if ($tipo === 'festivo') {
                     if ($acreditaFeriado && $horasFeriado > 0) {
                         $acumulado += $horasFeriado;
+                        $proyectados[] = $clave;
                     }
                 } else {
                     $acumulado += $jornada;
                     $diasRestantes++;
+                    $proyectados[] = $clave;
                 }
                 if ($acumulado >= $restantes) {
                     $fechaEstimada = $d;
@@ -142,6 +145,7 @@ final class Calculadora
             excedente: $excedente,
             rebasaAutorizada: $fechaEstimada !== null && $restantes > 0 && $fechaEstimada > $finAutorizada,
             feriadosPorConfirmar: $porConfirmar,
+            diasProyectados: $proyectados,
             situacion: $situacion,
             puedeConcluir: $motivo === null,
             motivoNoConcluir: $motivo,
