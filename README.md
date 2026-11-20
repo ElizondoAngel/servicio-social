@@ -13,62 +13,31 @@ El diseño técnico completo (tablas, reglas, cálculos, seguridad y respaldos) 
 | 3. Autenticación | Lista: inicio y cierre de sesión, inactividad, protección de rutas, CSRF, límite de intentos y recuperación por correo (54 pruebas) |
 | 4. Dashboard y alumnos | Listo: tablero con estadísticas, búsqueda y filtros; alta de alumno con su expediente; edición; ficha del alumno y resumen del expediente con la Calculadora (48 pruebas) |
 | 5. Expediente y calendario | Listo: datos y ajustes arriba; calendario por hojas, meses y semanas; captura de asistencia, falta, feriado o pendiente con correcciones (motivo), control de versión, autorizaciones, firmas semanales, feriados del catálogo, estados (suspender, baja, concluir, reabrir), nuevo periodo, catálogo de días inhábiles e historial del expediente (72 pruebas) |
-| 6. Cálculos y proyecciones | Pendiente (la Calculadora ya existe y está probada) |
-| 7. Historial, respaldos y recuperación | Pendiente |
-| 8. Pruebas, seguridad y despliegue | Pendiente |
+| 6. Cálculos y proyecciones | Listo: conclusión probable (horas y periodo), escenarios de 4, 5 y 6 h, ritmo real de las últimas 4 semanas, avance por mes, tablero con orden y filtros nuevos, configuración operativa (las reglas pendientes de autorización quedan de solo lectura) (33 pruebas) |
+| 7. Historial, respaldos y recuperación | Listo: historial general con filtros y detalle antes/después, sellado en cadena con `ss_sello` y su verificación, respaldos JSON firmados con retención, descarga con aviso, restauración que solo agrega lo que falta (vista previa, contraseña, respaldo previo, candado, una transacción), volcado nocturno, copia cifrada con age y restauración completa desde el servidor (53 pruebas) |
+| 8. Pruebas, seguridad y despliegue | Listo para TI: pruebas de seguridad de todas las rutas, verificador de instalación, guía de despliegue (`docs/despliegue.md`). Falta lo que depende de TI |
 
-## Requisitos
+## Instalación y operación
 
-- PHP 8.1 o más nuevo, con `pdo_mysql` y soporte Argon2id (`password_hash(..., PASSWORD_ARGON2ID)`).
-- MariaDB **10.2.7 o más nuevo** (CHECK, tipo JSON, bloques `BEGIN NOT ATOMIC`); recomendado 10.4 o más nuevo.
-- Permiso para crear triggers en la base `servicio_social`.
+Todo lo del servidor está en **[docs/despliegue.md](docs/despliegue.md)**:
+- requisitos;
+- migraciones `000` a `006` y usuarios de MariaDB;
+- configuración;
+- Apache;
+- cron;
+- respaldos y restauración;
+- actualizaciones;
+- resumen de seguridad.
 
-## Instalar la base de datos
+Después de instalar o actualizar: `php bin/verificar-instalacion.php` (debe terminar con 0 fallas).
 
-Las contraseñas nunca van en los archivos: se escriben en la sesión del cliente `mariadb` y se borran al terminar.
-
-```bash
-cd database/migraciones
-
-# 1. TI, con root: base y usuario de migraciones
-mariadb -u root -p
-  SET @pw_admin = '...';
-  SOURCE 000_base_y_admin.sql;
-  exit
-
-# 2. Con ss_admin: esquema, triggers y configuración inicial
-mariadb -u ss_admin -p servicio_social < 001_esquema.sql
-mariadb -u ss_admin -p servicio_social < 002_triggers.sql
-mariadb -u ss_admin -p servicio_social < 003_configuracion_inicial.sql
-
-# 3. TI, con root: usuarios de la aplicación
-mariadb -u root -p
-  SET @pw_app = '...'; SET @pw_respaldo = '...'; SET @pw_sello = '...';
-  SOURCE 004_usuarios_aplicacion.sql;
-  exit
-
-# 4. Migración 005 (versión de sesión), con ss_admin
-mariadb -u ss_admin -p servicio_social < 005_sesion_version.sql
-
-# 5. Configuración y primer administrador
-cp config/config.ejemplo.php config/config.local.php   # llenar valores, chmod 640
-php bin/crear-admin.php
-```
-
-## Poner la aplicación en el servidor
-
-1. En tu Mac, instala PHPMailer: `composer install --no-dev` (crea la carpeta `vendor/`).
-2. Sube el proyecto completo con WinSCP, incluida `vendor/`. WinSCP no sube archivos que empiezan con punto, por eso la configuración es `config.local.php` y no `.env`.
-3. En el servidor: `mkdir -p storage/{respaldos,sesiones,logs}` y `chmod 750 storage storage/*`, con el usuario de Apache como dueño.
-4. Apunta el sitio a la carpeta `public/` (ejemplo en `docs/apache.conf`) con HTTPS. Si no se puede editar el VirtualHost, sube a mano `public/.htaccess`.
-5. En `config.local.php`: `entorno` = `produccion`, `forzar_https` = `true`, `correo.driver` = `smtp` y los datos del SMTP institucional.
-
-| Usuario MariaDB | Uso |
+| Script (`bin/`) | Para qué |
 | --- | --- |
-| `ss_admin` | Migraciones y reemplazo completo. Dueño de los triggers. La aplicación no lo usa |
-| `ss_app` | La aplicación web. Sin `DELETE` en alumnos y expedientes, sin `UPDATE` ni `DELETE` en historial |
-| `ss_respaldo` | `mysqldump --single-transaction --triggers --no-tablespaces servicio_social` |
-| `ss_sello` | Sellado nocturno del historial (solo columnas `hash` y `sellado_en`) |
+| `crear-admin.php` | Crear un administrador (pide la contraseña sin mostrarla) |
+| `verificar-instalacion.php` | Revisar PHP, configuración, carpetas, base, permisos, respaldos y sellado |
+| `respaldo-nocturno.php` | Cron: respaldo JSON, volcado, copia externa cifrada y limpieza |
+| `sellar-historial.php` | Cron: sellar y verificar la cadena del historial (`--verificar` solo verifica) |
+| `restaurar.php` | `--json=` agrega lo que falta; `--volcado=` reemplaza toda la base (desastre) |
 
 ## Pruebas
 
@@ -87,7 +56,14 @@ tools/probar_todo.sh
 | Punta a punta | `tests/e2e/autenticacion.php` | Un servidor real con `php -S`: login, bloqueo por intentos, cierre por inactividad, recuperación de contraseña, HTTPS |
 | Punta a punta | `tests/e2e/alumnos.php` | Tablero, alta con validaciones, matrícula repetida, edición con motivo, búsqueda, filtros, escapado de HTML |
 | Unidad | `tests/unidad/calendario.php` | Hojas de 12 semanas, estados y marcas de cada día, totales, firmas y días proyectados |
-| Punta a punta | `tests/e2e/expediente.php` | Captura y corrección de días, duplicados y conflictos de versión, autorizaciones, firmas, catálogo, datos del expediente, estados, nuevo periodo, concluir y reabrir |
+| Punta a punta | `tests/e2e/expediente.php` | Captura y corrección de días, duplicados y conflictos de versión, autorizaciones, firmas, catálogo, datos del expediente, estados, nuevo periodo, concluir y reabrir, hojas desplegables |
+| Unidad | `tests/unidad/proyeccion.php` | Conclusión probable, escenarios por jornada, ritmo real y avance por mes |
+| Punta a punta | `tests/e2e/proyeccion.php` | Panel de proyección, orden y filtros del tablero, configuración (rangos, motivo, reglas pendientes intocables) |
+| Unidad | `tests/unidad/respaldos.php` | Formato firmado (archivos alterados, otra llave, truncados), validación de registros, cadena de sellos, retención de volcados |
+| Punta a punta | `tests/e2e/seguridad.php` | Todas las rutas: sesión obligatoria y CSRF en cada POST; cabeceras, CSP sin código en línea, archivos privados, entradas maliciosas |
+| Punta a punta | `tests/e2e/respaldos.php` | Historial, sellado, respaldos, descarga, retención, restauración, candado, mantenimiento, scripts del servidor y restauración completa |
+
+`probar_todo.sh` también falla si PHP registra cualquier advertencia durante las pruebas.
 
 Solo usan datos ficticios. Las pruebas no necesitan Composer.
 

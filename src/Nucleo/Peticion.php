@@ -15,6 +15,7 @@ final class Peticion
         public readonly array $cuerpo,
         public readonly array $servidor,
         private readonly array $proxiesConfianza = [],
+        public readonly array $archivos = [],
     ) {
     }
 
@@ -22,7 +23,7 @@ final class Peticion
     {
         $ruta = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
         $ruta = '/' . trim(rawurldecode($ruta), '/');
-        return new self(strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'), $ruta, $_GET, $_POST, $_SERVER, $proxiesConfianza);
+        return new self(strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'), $ruta, $_GET, $_POST, $_SERVER, $proxiesConfianza, $_FILES);
     }
 
     public function texto(string $campo): string
@@ -89,5 +90,22 @@ final class Peticion
     public function esperaJson(): bool
     {
         return str_contains((string)$this->cabecera('Accept'), 'application/json');
+    }
+
+    /**
+     * Archivo subido sin errores, o null. Nunca confía en el nombre ni en el
+     * tipo que manda el navegador.
+     * @return array{ruta: string, nombre: string, tamano: int}|null
+     */
+    public function archivo(string $campo): ?array
+    {
+        $a = $this->archivos[$campo] ?? null;
+        if (!is_array($a) || !is_string($a['tmp_name'] ?? null) || ($a['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        if (!is_uploaded_file($a['tmp_name']) && PHP_SAPI !== 'cli') {
+            return null;
+        }
+        return ['ruta' => $a['tmp_name'], 'nombre' => basename((string)($a['name'] ?? 'archivo')), 'tamano' => (int)($a['size'] ?? 0)];
     }
 }

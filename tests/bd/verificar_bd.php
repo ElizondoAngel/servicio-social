@@ -13,6 +13,7 @@ declare(strict_types=1);
  */
 
 require __DIR__ . '/../../src/Dominio/Periodo.php';
+require __DIR__ . '/../../src/Dominio/SelloHistorial.php';
 
 use ServicioSocial\Dominio\Periodo;
 
@@ -187,7 +188,10 @@ debeFallar('ss_app no puede editar el historial', 'UPDATE command denied', fn() 
 debeFallar('ss_app no puede borrar el historial', 'DELETE command denied', fn() => $app->exec('DELETE FROM historial WHERE id = 1'));
 debeFallar('ss_admin tampoco puede editarlo', 'HISTORIAL_INMUTABLE', fn() => $admin->exec("UPDATE historial SET motivo = 'alterado' WHERE id = 1"));
 debeFallar('ss_admin tampoco puede borrarlo', 'HISTORIAL_INMUTABLE', fn() => $admin->exec('DELETE FROM historial WHERE id = 1'));
-debePasar('ss_sello sella una fila sin sellar', fn() => $sello->exec("UPDATE historial SET hash = REPEAT('a', 64), sellado_en = NOW() WHERE id = 1"));
+// Se sella con el hash real de la cadena, para que la base de prueba quede íntegra.
+$fila1 = $sello->query('SELECT * FROM historial WHERE id = 1')->fetch(PDO::FETCH_ASSOC);
+$hash1 = \ServicioSocial\Dominio\SelloHistorial::encadenar(\ServicioSocial\Dominio\SelloHistorial::INICIO, $fila1);
+debePasar('ss_sello sella una fila sin sellar', fn() => $sello->exec("UPDATE historial SET hash = '$hash1', sellado_en = NOW() WHERE id = 1"));
 debeFallar('ss_sello no puede volver a sellarla', 'HISTORIAL_INMUTABLE', fn() => $sello->exec("UPDATE historial SET hash = REPEAT('b', 64), sellado_en = NOW() WHERE id = 1"));
 debeFallar('ss_sello no puede cambiar otras columnas', 'denied', fn() => $sello->exec("UPDATE historial SET motivo = 'x' WHERE id = 2"));
 debeFallar('ss_app no puede borrar alumnos', 'DELETE command denied', fn() => $app->exec('DELETE FROM alumnos WHERE id = 1'));

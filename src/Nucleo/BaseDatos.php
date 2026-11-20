@@ -50,6 +50,11 @@ final class BaseDatos
     public function transaccion(callable $fn, ?string $motivo = null): mixed
     {
         $pdo = $this->pdo();
+        // Mientras otra conexión restaura un respaldo, no se captura nada.
+        $candado = $pdo->query("SELECT IS_USED_LOCK('ss_restauracion') AS dueno, CONNECTION_ID() AS yo")->fetch();
+        if ($candado['dueno'] !== null && (int)$candado['dueno'] !== (int)$candado['yo']) {
+            throw new HttpExcepcion(423, 'Hay una restauración de respaldo en curso. Espera un momento y vuelve a intentarlo.');
+        }
         $pdo->beginTransaction();
         try {
             $pdo->prepare('SET @motivo_app = ?')->execute([$motivo]);

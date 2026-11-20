@@ -9,6 +9,9 @@ declare(strict_types=1);
 use ServicioSocial\Controladores\AuthControlador;
 use ServicioSocial\Controladores\AlumnoControlador;
 use ServicioSocial\Controladores\CatalogoControlador;
+use ServicioSocial\Controladores\ConfiguracionControlador;
+use ServicioSocial\Controladores\HistorialControlador;
+use ServicioSocial\Controladores\RespaldoControlador;
 use ServicioSocial\Controladores\DashboardControlador;
 use ServicioSocial\Controladores\ExpedienteControlador;
 use ServicioSocial\Nucleo\Aplicacion;
@@ -23,6 +26,8 @@ use ServicioSocial\Repositorios\ConfiguracionRepositorio;
 use ServicioSocial\Repositorios\DiaInhabilRepositorio;
 use ServicioSocial\Repositorios\ExpedienteRepositorio;
 use ServicioSocial\Repositorios\FirmaRepositorio;
+use ServicioSocial\Repositorios\RespaldoDatosRepositorio;
+use ServicioSocial\Repositorios\RespaldoRepositorio;
 use ServicioSocial\Repositorios\HistorialRepositorio;
 use ServicioSocial\Repositorios\IntentoLoginRepositorio;
 use ServicioSocial\Repositorios\TokenResetRepositorio;
@@ -33,8 +38,10 @@ use ServicioSocial\Seguridad\Sesion;
 use ServicioSocial\Servicios\AlumnoServicio;
 use ServicioSocial\Servicios\AsistenciaServicio;
 use ServicioSocial\Servicios\CatalogoServicio;
+use ServicioSocial\Servicios\ConfiguracionServicio;
 use ServicioSocial\Servicios\GestionExpedienteServicio;
 use ServicioSocial\Servicios\ReglasExpediente;
+use ServicioSocial\Servicios\Respaldos\RespaldoServicio;
 use ServicioSocial\Servicios\AuthServicio;
 use ServicioSocial\Servicios\ExpedienteServicio;
 use ServicioSocial\Servicios\Correo\CorreoArchivo;
@@ -83,6 +90,10 @@ function crearAplicacion(Config $config): Aplicacion
     $alumnoCtl = new AlumnoControlador($vista, $sesion, $alumnoServicio, $alumnos, $expedientes, $calculos, $usuarios);
     $expedienteCtl = new ExpedienteControlador($vista, $sesion, $expedientes, $alumnos, $usuarios, $historial, $calculos,
         $asistenciaServicio, $gestion, $reglas);
+    $historialCtl = new HistorialControlador($vista, $sesion, $historial);
+    $respaldoCtl = new RespaldoControlador($vista, $sesion, crearServicioRespaldos($config, $bd), $usuarios,
+        (string)$config->get('rutas.temporal', __DIR__ . '/../storage/tmp'));
+    $configuracionCtl = new ConfiguracionControlador($vista, $sesion, new ConfiguracionServicio($bd, $configuracion));
     $catalogoCtl = new CatalogoControlador($vista, $sesion, new CatalogoServicio($bd, $dias), $dias);
 
     $r = new Router();
@@ -110,9 +121,29 @@ function crearAplicacion(Config $config): Aplicacion
     $r->post('/expedientes/{id}/feriados', [$expedienteCtl, 'confirmarFeriados'], ['permiso' => 'asistencias.registrar']);
     $r->post('/expedientes/{id}/datos', [$expedienteCtl, 'actualizarDatos'], ['permiso' => 'expedientes.editar']);
     $r->post('/expedientes/{id}/estado', [$expedienteCtl, 'cambiarEstado'], ['permiso' => 'expedientes.estado']);
+    $r->get('/historial', [$historialCtl, 'index'], ['permiso' => 'historial.ver']);
+    $r->get('/historial/{id}', [$historialCtl, 'ver'], ['permiso' => 'historial.ver']);
+    $r->post('/historial/verificar', [$historialCtl, 'verificar'], ['permiso' => 'historial.ver']);
+    $r->get('/respaldos', [$respaldoCtl, 'index'], ['permiso' => 'respaldos.ver']);
+    $r->post('/respaldos', [$respaldoCtl, 'crear'], ['permiso' => 'respaldos.crear']);
+    $r->post('/respaldos/{id}/verificar', [$respaldoCtl, 'verificar'], ['permiso' => 'respaldos.ver']);
+    $r->post('/respaldos/{id}/descargar', [$respaldoCtl, 'descargar'], ['permiso' => 'respaldos.descargar']);
+    $r->post('/respaldos/restaurar', [$respaldoCtl, 'preparar'], ['permiso' => 'respaldos.restaurar']);
+    $r->post('/respaldos/restaurar/confirmar', [$respaldoCtl, 'confirmar'], ['permiso' => 'respaldos.restaurar']);
+    $r->get('/configuracion', [$configuracionCtl, 'ver'], ['permiso' => 'configuracion.ver']);
+    $r->post('/configuracion', [$configuracionCtl, 'guardar'], ['permiso' => 'configuracion.editar']);
     $r->get('/dias-inhabiles', [$catalogoCtl, 'index'], ['permiso' => 'catalogo.ver']);
     $r->post('/dias-inhabiles', [$catalogoCtl, 'agregar'], ['permiso' => 'catalogo.editar']);
     $r->post('/dias-inhabiles/{id}/quitar', [$catalogoCtl, 'quitar'], ['permiso' => 'catalogo.editar']);
 
     return new Aplicacion($config, $r, $bd, $sesion, $csrf, $vista, $usuarios, $configuracion, $auth);
+}
+
+/** El servicio de respaldos también lo usa el respaldo nocturno (bin/respaldo-nocturno.php). */
+function crearServicioRespaldos(Config $config, BaseDatos $bd): RespaldoServicio
+{
+    $pdo = $bd->pdo();
+    return new RespaldoServicio($bd, new RespaldoRepositorio($pdo), new RespaldoDatosRepositorio($pdo), new HistorialRepositorio($pdo),
+        new ConfiguracionRepositorio($pdo), (string)$config->get('respaldos.ruta', __DIR__ . '/../storage/respaldos'),
+        (string)$config->get('respaldos.llave_hmac', ''));
 }

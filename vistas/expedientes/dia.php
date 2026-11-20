@@ -111,7 +111,8 @@ $necesitaAutorizacion = $requiere !== [] && ($reg['autorizado_por'] ?? null) ===
 
     <div class="acciones">
       <button class="btn primario" type="submit">Guardar</button>
-      <a class="btn js-cerrar" href="/expedientes/<?= $id ?>#semana-<?= e(date('Y-m-d', strtotime($fecha . ' -' . ((int)date('N', strtotime($fecha)) - 1) . ' day'))) ?>">Cancelar</a>
+      <?php $lunesDia = date('Y-m-d', strtotime($fecha . ' -' . ((int)date('N', strtotime($fecha)) - 1) . ' day')); ?>
+      <a class="btn js-cerrar" href="/expedientes/<?= $id ?>?semana=<?= e($lunesDia) ?>#semana-<?= e($lunesDia) ?>">Cancelar</a>
     </div>
   </form>
   <?php endif; ?>

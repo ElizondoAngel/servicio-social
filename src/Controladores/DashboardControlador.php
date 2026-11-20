@@ -25,12 +25,18 @@ final class DashboardControlador
         if (!isset(ExpedienteServicio::FILTROS[$filtro])) {
             $filtro = 'todos';
         }
-        $tablero = $this->expedientes->tablero($busqueda, $filtro);
+        $orden = $p->consultaTexto('orden');
+        if (!isset(ExpedienteServicio::ORDENES[$orden])) {
+            $orden = 'nombre';
+        }
+        $tablero = $this->expedientes->tablero($busqueda, $filtro, $orden);
         return Respuesta::html($this->vista->render('dashboard', $tablero + [
             'titulo'   => 'Expedientes',
             'busqueda' => $busqueda,
             'filtro'   => $filtro,
             'filtros'  => ExpedienteServicio::FILTROS,
+            'orden'    => $orden,
+            'ordenes'  => ExpedienteServicio::ORDENES,
             'aviso'    => $this->sesion->tomar('aviso'),
         ]));
     }

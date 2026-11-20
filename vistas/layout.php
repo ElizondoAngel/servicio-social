@@ -18,6 +18,9 @@
         <a href="/">Expedientes</a>
         <a href="/alumnos/nuevo">Registrar alumno</a>
         <a href="/dias-inhabiles">Días inhábiles</a>
+        <a href="/historial">Historial</a>
+        <a href="/respaldos">Respaldos</a>
+        <a href="/configuracion">Configuración</a>
       </nav>
     </div>
     <div class="barra-usuario">

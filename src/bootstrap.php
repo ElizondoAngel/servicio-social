@@ -47,6 +47,10 @@ error_reporting(E_ALL);
 if (!function_exists('e')) {
     function e(mixed $valor): string
     {
+        // Un formulario manipulado puede mandar arreglos: nunca se imprimen.
+        if (is_array($valor) || is_object($valor) && !method_exists($valor, '__toString')) {
+            return '';
+        }
         return htmlspecialchars((string)$valor, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

@@ -78,6 +78,24 @@ prueba('total de la hoja = suma de sus meses', function () use ($hojas) {
     igual(array_sum(array_column($hojas[0]['meses'], 'horas')), $hojas[0]['horas']);
 });
 
+seccion('Hojas desplegables');
+$abiertas = fn(array $hs) => array_values(array_map(fn($h) => $h['numero'], array_filter($hs, fn($h) => $h['abierta'])));
+prueba('solo se abre la hoja de hoy', fn() => igual([1], $abiertas($hojas)));
+prueba('hoy en la segunda hoja: se abre esa', function () use ($exp, $abiertas) {
+    $hs = Calendario::construir($exp, [], [], [], [], new DateTimeImmutable('2026-09-15'));
+    igual([2], $abiertas($hs));
+    verdadero($hs[1]['actual'] && !$hs[0]['actual'], 'marca la actual');
+});
+prueba('antes del inicio: la primera hoja', fn() => igual([1], $abiertas(Calendario::construir($exp, [], [], [], [], new DateTimeImmutable('2026-01-10')))));
+prueba('después del periodo: la última hoja con horas', function () use ($exp, $reg, $abiertas) {
+    $hs = Calendario::construir($exp, ['2026-10-05' => $reg('2026-10-05', 'asistencia', 4)], [], [], [], new DateTimeImmutable('2027-08-01'));
+    igual([2], $abiertas($hs));
+});
+prueba('una fecha pedida abre su hoja en lugar de la de hoy', function () use ($exp, $abiertas) {
+    $hs = Calendario::construir($exp, [], [], [], [], new DateTimeImmutable('2026-06-29'), null, new DateTimeImmutable('2026-12-14'));
+    igual([3], $abiertas($hs));
+});
+
 seccion('Proyección para el calendario');
 prueba('la Calculadora devuelve los días que proyecta', function () use ($exp) {
     $r = Calculadora::calcular($exp, [], ['2026-06-24' => 'festivo', '2026-06-25' => 'cierre'], new DateTimeImmutable('2026-06-23'));

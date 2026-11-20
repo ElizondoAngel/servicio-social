@@ -51,6 +51,13 @@ final class Aplicacion
             return new Respuesta(301, '', ['Location' => $base . $p->ruta]);
         }
 
+        // 1b. Modo mantenimiento (lo activa bin/restaurar.php durante una restauración completa)
+        $bandera = (string)$this->config->get('rutas.mantenimiento', __DIR__ . '/../../storage/mantenimiento');
+        if (is_file($bandera)) {
+            return $this->error($p, 503, 'El sistema está en mantenimiento por una restauración de datos. Vuelve a intentarlo en unos minutos.')
+                ->conCabecera('Retry-After', '300');
+        }
+
         // 2. Sesión
         $this->sesion->iniciar($p->esHttps());
         $this->bd->fijarContexto(null, $p->ip(), $p->agente());

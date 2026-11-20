@@ -1,7 +1,8 @@
 <?php
 /** @var array $estadisticas @var array $filas @var string $busqueda @var string $filtro @var array $filtros */
 $tonos = ['ok' => 'pill-ok', 'info' => 'pill-info', 'aviso' => 'pill-aviso', 'mal' => 'pill-mal', 'neutro' => 'pill-neutro'];
-$enlace = fn(string $f) => '/?' . http_build_query(array_filter(['q' => $busqueda, 'filtro' => $f === 'todos' ? '' : $f]));
+$enlace = fn(string $f, ?string $o = null) => '/?' . http_build_query(array_filter([
+    'q' => $busqueda, 'filtro' => $f === 'todos' ? '' : $f, 'orden' => ($o ?? $orden) === 'nombre' ? '' : ($o ?? $orden)]));
 ?>
 <div class="encabezado">
   <div>
@@ -26,12 +27,19 @@ $enlace = fn(string $f) => '/?' . http_build_query(array_filter(['q' => $busqued
     <label class="oculto" for="q">Buscar por nombre o matrícula</label>
     <input id="q" name="q" type="search" value="<?= e($busqueda) ?>" placeholder="Buscar por nombre o matrícula" maxlength="80">
     <?php if ($filtro !== 'todos'): ?><input type="hidden" name="filtro" value="<?= e($filtro) ?>"><?php endif; ?>
+    <?php if ($orden !== 'nombre'): ?><input type="hidden" name="orden" value="<?= e($orden) ?>"><?php endif; ?>
     <button class="btn" type="submit">Buscar</button>
     <?php if ($busqueda !== ''): ?><a class="btn-texto" href="<?= e($enlace($filtro)) ?>&amp;q=">Limpiar</a><?php endif; ?>
   </form>
   <nav class="filtros" aria-label="Filtrar">
     <?php foreach ($filtros as $clave => $nombre): ?>
       <a class="filtro<?= $clave === $filtro ? ' activo' : '' ?>" href="<?= e($enlace($clave)) ?>"<?= $clave === $filtro ? ' aria-current="page"' : '' ?>><?= e($nombre) ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <nav class="filtros orden" aria-label="Ordenar">
+    <span class="pista">Ordenar por:</span>
+    <?php foreach ($ordenes as $clave => $nombre): ?>
+      <a class="filtro<?= $clave === $orden ? ' activo' : '' ?>" href="<?= e($enlace($filtro, $clave)) ?>"<?= $clave === $orden ? ' aria-current="true"' : '' ?>><?= e($nombre) ?></a>
     <?php endforeach; ?>
   </nav>
 
@@ -49,7 +57,7 @@ $enlace = fn(string $f) => '/?' . http_build_query(array_filter(['q' => $busqued
     <div class="tabla-contenedor">
       <table class="tabla">
         <thead>
-          <tr><th>Alumno</th><th>Carrera</th><th>Inicio</th><th class="num">Acreditadas</th><th class="num">Restantes</th><th>Avance</th><th>Fecha estimada</th><th>Situación</th></tr>
+          <tr><th>Alumno</th><th>Carrera</th><th>Inicio</th><th class="num">Acreditadas</th><th class="num">Restantes</th><th>Avance</th><th>Conclusión probable</th><th>Situación</th></tr>
         </thead>
         <tbody>
         <?php foreach ($filas as $f): $r = $f['resumen']; ?>
@@ -60,7 +68,7 @@ $enlace = fn(string $f) => '/?' . http_build_query(array_filter(['q' => $busqued
             <td class="num"><?= (int)$r->acreditadas ?> h</td>
             <td class="num"><?= (int)$r->restantes ?> h</td>
             <td><div class="avance"><progress class="barra-mini" value="<?= e($r->avance) ?>" max="100"><?= e($r->avance) ?> %</progress><span><?= e(number_format($r->avance, 0)) ?> %</span></div></td>
-            <td><?= $r->restantes === 0 ? 'Horas completas' : e(fecha_corta($r->fechaEstimada)) ?></td>
+            <td><?php if ($f['estado'] === 'concluido'): ?>Concluido<?php elseif ($r->situacion === 'listo'): ?>Ya se puede concluir<span class="sub">desde <?= e(fecha_corta($f['conclusion'])) ?></span><?php elseif ($f['conclusion']): ?><?= e(fecha_corta($f['conclusion'])) ?><span class="sub"><?= $r->restantes === 0 ? 'horas completas' : 'horas: ' . e(fecha_corta($r->fechaEstimada)) ?></span><?php else: ?>—<?php endif; ?></td>
             <td><span class="pill <?= e($tonos[$r->tono()]) ?>"><?= e($r->etiqueta()) ?></span></td>
           </tr>
         <?php endforeach; ?>

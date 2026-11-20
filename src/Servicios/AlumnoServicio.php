@@ -102,7 +102,8 @@ final class AlumnoServicio
 
     private function validarAlumno(array $entrada): Validador
     {
-        $entrada['matricula'] = strtoupper(trim((string)($entrada['matricula'] ?? '')));
+        // Solo texto: un arreglo (matricula[]=...) no debe convertirse en "ARRAY".
+        $entrada['matricula'] = is_string($entrada['matricula'] ?? null) ? strtoupper(trim($entrada['matricula'])) : '';
         return (new Validador($entrada))
             ->texto('matricula', 'la matrícula', 20, true, self::PATRON_MATRICULA, 'La matrícula solo lleva letras, números o guiones (4 a 20 caracteres).')
             ->texto('nombre', 'el nombre', 80, true, self::PATRON_NOMBRE, 'El nombre solo lleva letras, espacios, puntos o guiones.')

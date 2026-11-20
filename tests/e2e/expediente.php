@@ -63,6 +63,16 @@ prueba('datos de la bitácora arriba, antes del calendario', function () use ($n
     contiene('id="dialogo-dia"', $c);
     contiene('Historial del expediente', $c);
 });
+prueba('las hojas son desplegables y solo una viene abierta', function () use ($n, $E) {
+    $c = $n->get("/expedientes/$E")['cuerpo'];
+    verdadero(substr_count($c, '<details class="hoja"') >= 1, 'hojas');
+    igual(1, preg_match_all('#<details class="hoja" id="hoja-\d+" open>#', $c), 'una abierta');
+});
+prueba('?semana= abre la hoja de esa semana', function () use ($n, $E, $inicio) {
+    $semana = $inicio->modify('+13 week')->format('Y-m-d');
+    $c = $n->get("/expedientes/$E?semana=$semana")['cuerpo'];
+    verdadero((bool)preg_match('#<details class="hoja" id="hoja-2" open>#', $c), 'hoja 2 abierta');
+});
 prueba('la zona parcial sale sin el layout', function () use ($n, $E) {
     $c = $n->get("/expedientes/$E?parcial=zona")['cuerpo'];
     contiene('Calendario de asistencia', $c);
@@ -85,6 +95,7 @@ prueba('sin token CSRF se rechaza', fn() => igual(403, $n->post("/expedientes/$E
 prueba('asistencia de 4 h: se guarda, historial con usuario y vuelve a la semana', function () use ($guardar, $habil, $dia, $ultimoHist, $adminId) {
     $r = $guardar(['fecha' => $habil(0), 'estado' => 'asistencia', 'horas_trabajadas' => '4']);
     igual(303, $r['estado']);
+    contiene('?semana=', $r['cabeceras']['location'] ?? '');
     contiene('#semana-', $r['cabeceras']['location'] ?? '');
     $d = $dia($habil(0));
     igual(['asistencia', 4, 4], [$d['estado'], (int)$d['horas_trabajadas'], (int)$d['horas_acreditadas']]);

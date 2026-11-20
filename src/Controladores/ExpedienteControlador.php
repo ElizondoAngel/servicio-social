@@ -42,10 +42,12 @@ final class ExpedienteControlador
     public function ver(Peticion $p, array $params): Respuesta
     {
         $exp = $this->buscar($params['id']);
+        $semana = $this->fechaValida($p->consultaTexto('semana'), false);
+        $enfocar = $semana === null ? null : new DateTimeImmutable($semana);
         if ($p->consultaTexto('parcial') === 'zona') {
-            return Respuesta::html($this->zona($exp));
+            return Respuesta::html($this->zona($exp, $enfocar));
         }
-        return $this->pagina($exp);
+        return $this->pagina($exp, [], 200, $enfocar);
     }
 
     // ----- Día del calendario ----------------------------------------------
@@ -138,14 +140,14 @@ final class ExpedienteControlador
 
     // ----- Apoyo -------------------------------------------------------------
 
-    private function pagina(array $exp, array $formulario = [], int $estado = 200): Respuesta
+    private function pagina(array $exp, array $formulario = [], int $estado = 200, ?DateTimeImmutable $enfocar = null): Respuesta
     {
         $alumno = $this->alumnos->porId((int)$exp['alumno_id']);
         return Respuesta::html($this->vista->render('expedientes/ver', [
             'titulo'     => 'Expediente de ' . $alumno['nombre'] . ' ' . $alumno['apellido_paterno'],
             'expediente' => $exp,
             'alumno'     => $alumno,
-            'zona'       => $this->zona($exp),
+            'zona'       => $this->zona($exp, $enfocar),
             'vecinos'    => $this->calculos->vecinos((int)$alumno['id']),
             'periodos'   => $this->expedientes->deAlumno((int)$alumno['id']),
             'jornadas'   => $this->reglas->jornadasPermitidas(),
@@ -156,9 +158,10 @@ final class ExpedienteControlador
     }
 
     /** Resumen, calendario, estado e historial: lo que cambia al capturar. */
-    private function zona(array $exp): string
+    private function zona(array $exp, ?DateTimeImmutable $enfocar = null): string
     {
-        $detalle = $this->calculos->detalle($exp);
+        $detalle = $this->calculos->detalle($exp, $enfocar);
+        $detalle['proyeccion'] = $this->calculos->proyeccion($exp, $detalle['registros'], $detalle['resumen'], $this->reglas->jornadasPermitidas());
         return $this->vista->render('expedientes/_zona', $detalle + [
             'expediente' => $exp,
             'hoy'        => $this->calculos->hoy(),
@@ -213,7 +216,8 @@ final class ExpedienteControlador
             return '';
         }
         $d = new DateTimeImmutable($fecha);
-        return '#semana-' . $d->modify('-' . ((int)$d->format('N') - 1) . ' day')->format('Y-m-d');
+        $lunes = $d->modify('-' . ((int)$d->format('N') - 1) . ' day')->format('Y-m-d');
+        return '?semana=' . $lunes . '#semana-' . $lunes;
     }
 
     private function fechaValida(string $fecha, bool $obligatoria = true): ?string

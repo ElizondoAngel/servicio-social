@@ -63,11 +63,39 @@
     return false;
   }
 
+  // Hojas desplegables: se recuerda cuáles están abiertas al recargar la zona.
+  function hojasAbiertas() {
+    return Array.prototype.map.call(zona.querySelectorAll('details.hoja[open]'), function (d) { return d.id; });
+  }
+  function prepararHojas(abiertas) {
+    if (abiertas) {
+      zona.querySelectorAll('details.hoja').forEach(function (d) { d.open = abiertas.indexOf(d.id) !== -1; });
+    }
+    zona.querySelectorAll('.js-hojas').forEach(function (b) { b.hidden = false; });
+  }
+  function abrirDesdeAncla() {
+    if (!location.hash) { return; }
+    var destino = document.getElementById(location.hash.slice(1));
+    var hoja = destino && destino.closest('details.hoja');
+    if (hoja && !hoja.open) { hoja.open = true; destino.scrollIntoView(); }
+  }
+
   function recargarZona() {
+    var abiertas = hojasAbiertas();
     return fetch(base + '?parcial=zona', { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
       .then(function (r) { if (sesionVencida(r)) { throw new Error('sesion'); } return r.text(); })
-      .then(function (html) { zona.innerHTML = html; });
+      .then(function (html) { zona.innerHTML = html; prepararHojas(abiertas); });
   }
+
+  prepararHojas(null);
+  abrirDesdeAncla();
+  window.addEventListener('hashchange', abrirDesdeAncla);
+  zona.addEventListener('click', function (e) {
+    var boton = e.target.closest('.js-hojas');
+    if (!boton) { return; }
+    var abrir = boton.dataset.abrir === '1';
+    zona.querySelectorAll('details.hoja').forEach(function (d) { d.open = abrir; });
+  });
 
   function ajustarCampos() {
     var form = contenido.querySelector('form.js-form-dia');

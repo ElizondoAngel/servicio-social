@@ -24,9 +24,11 @@ final class Calendario
      * @param array $inhabiles   fecha => 'festivo'|'cierre'
      * @param array $proyectados fechas que cuenta la proyección
      * @param array $firmas      lunes => true
+     * @param ?DateTimeImmutable $enfocar  fecha cuya hoja debe mostrarse abierta (por omisión, la de hoy)
      */
     public static function construir(array $expediente, array $registros, array $inhabiles, array $proyectados,
-                                      array $firmas, DateTimeImmutable $hoy, ?DateTimeImmutable $fechaEstimada = null): array
+                                      array $firmas, DateTimeImmutable $hoy, ?DateTimeImmutable $fechaEstimada = null,
+                                      ?DateTimeImmutable $enfocar = null): array
     {
         $hoy = $hoy->setTime(0, 0);
         $inicio = new DateTimeImmutable((string)$expediente['fecha_inicio']);
@@ -83,10 +85,40 @@ final class Calendario
                 $hoja['horas'] += $mes['horas'];
                 $hoja['meses'][] = $mes;
             }
+            $hoja['actual'] = $hoy >= $hoja['meses'][0]['semanas'][0]['lunes']
+                && $hoy <= $hoja['meses'][2]['semanas'][3]['viernes']->modify('+2 day');
             $hoja['desde'] = $hoja['meses'][0]['semanas'][0]['lunes'];
             $hoja['hasta'] = $hoja['meses'][count($hoja['meses']) - 1]['semanas'][self::SEMANAS_POR_MES - 1]['viernes'];
             $hojas[] = $hoja;
         }
+        // Se abre la hoja de hoy; si hoy queda fuera, la primera (aún no empieza) o la última con horas.
+        $abierta = null;
+        foreach ($hojas as $i => $h) {
+            if ($h['actual'] && $enfocar === null) {
+                $abierta = $i;
+            }
+        }
+        if ($enfocar !== null) {
+            foreach ($hojas as $i => $h) {
+                if ($enfocar >= $h['desde'] && $enfocar <= $h['hasta']->modify('+2 day')) {
+                    $abierta = $i;
+                }
+            }
+        }
+        if ($abierta === null && $hojas !== []) {
+            $abierta = 0;
+            if ($hoy > $hojas[0]['desde']) {
+                foreach ($hojas as $i => $h) {
+                    if ($h['horas'] > 0) {
+                        $abierta = $i;
+                    }
+                }
+            }
+        }
+        foreach ($hojas as $i => &$h) {
+            $h['abierta'] = $i === $abierta;
+        }
+        unset($h);
         return $hojas;
     }
 
