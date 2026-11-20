@@ -7,14 +7,20 @@ declare(strict_types=1);
  */
 
 use ServicioSocial\Controladores\AuthControlador;
-use ServicioSocial\Controladores\InicioControlador;
+use ServicioSocial\Controladores\AlumnoControlador;
+use ServicioSocial\Controladores\DashboardControlador;
+use ServicioSocial\Controladores\ExpedienteControlador;
 use ServicioSocial\Nucleo\Aplicacion;
 use ServicioSocial\Nucleo\BaseDatos;
 use ServicioSocial\Nucleo\Config;
 use ServicioSocial\Nucleo\RelojSistema;
 use ServicioSocial\Nucleo\Router;
 use ServicioSocial\Nucleo\Vista;
+use ServicioSocial\Repositorios\AlumnoRepositorio;
+use ServicioSocial\Repositorios\AsistenciaRepositorio;
 use ServicioSocial\Repositorios\ConfiguracionRepositorio;
+use ServicioSocial\Repositorios\DiaInhabilRepositorio;
+use ServicioSocial\Repositorios\ExpedienteRepositorio;
 use ServicioSocial\Repositorios\HistorialRepositorio;
 use ServicioSocial\Repositorios\IntentoLoginRepositorio;
 use ServicioSocial\Repositorios\TokenResetRepositorio;
@@ -22,7 +28,9 @@ use ServicioSocial\Repositorios\UsuarioRepositorio;
 use ServicioSocial\Seguridad\Csrf;
 use ServicioSocial\Seguridad\LimiteIntentos;
 use ServicioSocial\Seguridad\Sesion;
+use ServicioSocial\Servicios\AlumnoServicio;
 use ServicioSocial\Servicios\AuthServicio;
+use ServicioSocial\Servicios\ExpedienteServicio;
 use ServicioSocial\Servicios\Correo\CorreoArchivo;
 use ServicioSocial\Servicios\Correo\CorreoSmtp;
 use ServicioSocial\Servicios\RecuperacionServicio;
@@ -53,8 +61,15 @@ function crearAplicacion(Config $config): Aplicacion
     $recuperacion = new RecuperacionServicio($bd, $usuarios, new TokenResetRepositorio($pdo), $historial, $correo,
         (string)$config->get('app.url_base'));
 
+    $alumnos = new AlumnoRepositorio($pdo);
+    $expedientes = new ExpedienteRepositorio($pdo);
+    $calculos = new ExpedienteServicio($expedientes, new AsistenciaRepositorio($pdo), new DiaInhabilRepositorio($pdo), $configuracion);
+    $alumnoServicio = new AlumnoServicio($bd, $alumnos, $expedientes, $configuracion);
+
     $authCtl = new AuthControlador($vista, $sesion, $csrf, $auth, $recuperacion);
-    $inicioCtl = new InicioControlador($vista);
+    $tableroCtl = new DashboardControlador($vista, $sesion, $calculos);
+    $alumnoCtl = new AlumnoControlador($vista, $sesion, $alumnoServicio, $alumnos, $expedientes, $calculos, $usuarios);
+    $expedienteCtl = new ExpedienteControlador($vista, $expedientes, $alumnos, $calculos);
 
     $r = new Router();
     $r->get('/login', [$authCtl, 'mostrarLogin'], ['publico' => true]);
@@ -66,7 +81,13 @@ function crearAplicacion(Config $config): Aplicacion
     $r->get('/restablecer', [$authCtl, 'mostrarRestablecer'], ['publico' => true]);
     $r->post('/restablecer', [$authCtl, 'procesarRestablecer'], ['publico' => true]);
 
-    $r->get('/', [$inicioCtl, 'inicio'], ['permiso' => 'expedientes.ver']);
+    $r->get('/', [$tableroCtl, 'inicio'], ['permiso' => 'expedientes.ver']);
+    $r->get('/alumnos/nuevo', [$alumnoCtl, 'nuevo'], ['permiso' => 'alumnos.crear']);
+    $r->post('/alumnos/nuevo', [$alumnoCtl, 'crear'], ['permiso' => 'alumnos.crear']);
+    $r->get('/alumnos/{id}', [$alumnoCtl, 'ver'], ['permiso' => 'alumnos.ver']);
+    $r->get('/alumnos/{id}/editar', [$alumnoCtl, 'editar'], ['permiso' => 'alumnos.editar']);
+    $r->post('/alumnos/{id}/editar', [$alumnoCtl, 'actualizar'], ['permiso' => 'alumnos.editar']);
+    $r->get('/expedientes/{id}', [$expedienteCtl, 'ver'], ['permiso' => 'expedientes.ver']);
 
     return new Aplicacion($config, $r, $bd, $sesion, $csrf, $vista, $usuarios, $configuracion, $auth);
 }

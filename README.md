@@ -11,7 +11,8 @@ El diseño técnico completo (tablas, reglas, cálculos, seguridad y respaldos) 
 | 1. Análisis y arquitectura | Aprobada |
 | 2. Base de datos | SQL listo y verificado en MariaDB 10.11 (63 pruebas). Falta confirmar la versión del servidor con TI |
 | 3. Autenticación | Lista: inicio y cierre de sesión, inactividad, protección de rutas, CSRF, límite de intentos y recuperación por correo (54 pruebas) |
-| 4. Dashboard y alumnos | Pendiente |
+| 4. Dashboard y alumnos | Listo: tablero con estadísticas, búsqueda y filtros; alta de alumno con su expediente; edición; ficha del alumno y resumen del expediente con la Calculadora (48 pruebas) |
+| 5. Calendario de asistencia | Pendiente |
 
 ## Requisitos
 
@@ -79,9 +80,13 @@ tools/probar_todo.sh
 | --- | --- | --- |
 | Base de datos | `tests/bd/verificar_bd.php` | Reglas de captura, conclusión, triggers, permisos, historial y la regla de los 6 meses en PHP y MariaDB |
 | Unidad | `tests/unidad/seguridad.php` | Vigencia de sesión, CSRF, permisos, contraseñas, IP real, redirecciones seguras |
+| Unidad | `tests/unidad/calculadora.php` | Horas acreditadas y trabajadas, feriados, cierres, 6 meses, proyección y situación (casos A–I y límites) |
 | Punta a punta | `tests/e2e/autenticacion.php` | Un servidor real con `php -S`: login, bloqueo por intentos, cierre por inactividad, recuperación de contraseña, HTTPS |
+| Punta a punta | `tests/e2e/alumnos.php` | Tablero, alta con validaciones, matrícula repetida, edición con motivo, búsqueda, filtros, escapado de HTML |
 
 Solo usan datos ficticios. Las pruebas no necesitan Composer.
+
+Para ver el tablero con información en tu Mac: `php tools/datos_demo.php` carga 6 alumnos ficticios (matrículas `DEMO-001` a `DEMO-006`). Se niega a correr si el entorno es producción.
 
 ## Estructura
 

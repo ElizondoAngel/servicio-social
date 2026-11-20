@@ -51,4 +51,32 @@ if (!function_exists('e')) {
     }
 }
 
+if (!function_exists('fecha_corta')) {
+    /** 23 jun 2026 */
+    function fecha_corta(DateTimeInterface|string|null $fecha): string
+    {
+        if ($fecha === null || $fecha === '') {
+            return '—';
+        }
+        $d = $fecha instanceof DateTimeInterface ? $fecha : new DateTimeImmutable($fecha);
+        $meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+        return $d->format('j') . ' ' . $meses[(int)$d->format('n') - 1] . ' ' . $d->format('Y');
+    }
+
+    /** 16:00 → 4:00 pm */
+    function hora12(?string $hora): string
+    {
+        if ($hora === null || $hora === '') {
+            return '—';
+        }
+        [$h, $m] = array_map('intval', explode(':', $hora));
+        return ($h % 12 === 0 ? 12 : $h % 12) . ':' . str_pad((string)$m, 2, '0', STR_PAD_LEFT) . ($h < 12 ? ' am' : ' pm');
+    }
+
+    function nombre_completo(array $a): string
+    {
+        return trim($a['nombre'] . ' ' . $a['apellido_paterno'] . ' ' . ($a['apellido_materno'] ?? ''));
+    }
+}
+
 return $config;

@@ -24,30 +24,51 @@ final class Router
     }
 
     /**
-     * @return array{accion: callable, publico: bool, permiso: ?string}|null
+     * Busca la ruta. Los segmentos {id} aceptan solo números enteros
+     * positivos y llegan a la acción en $parametros.
+     *
+     * @return array{accion: callable, publico: bool, permiso: ?string, parametros: array}|null
      */
     public function buscar(string $metodo, string $ruta): ?array
     {
         $metodo = $metodo === 'HEAD' ? 'GET' : $metodo;
-        $encontrada = $this->rutas[$metodo . ' ' . $ruta] ?? null;
-        if ($encontrada === null) {
-            return null;
+        foreach ($this->rutas as $clave => [$accion, $opciones]) {
+            [$m, $patron] = explode(' ', $clave, 2);
+            if ($m !== $metodo) {
+                continue;
+            }
+            $parametros = self::coincide($patron, $ruta);
+            if ($parametros !== null) {
+                return [
+                    'accion'     => $accion,
+                    'publico'    => (bool)($opciones['publico'] ?? false),
+                    'permiso'    => $opciones['permiso'] ?? null,
+                    'parametros' => $parametros,
+                ];
+            }
         }
-        [$accion, $opciones] = $encontrada;
-        return [
-            'accion'  => $accion,
-            'publico' => (bool)($opciones['publico'] ?? false),
-            'permiso' => $opciones['permiso'] ?? null,
-        ];
+        return null;
     }
 
     public function existeRuta(string $ruta): bool
     {
         foreach (array_keys($this->rutas) as $clave) {
-            if (substr($clave, strpos($clave, ' ') + 1) === $ruta) {
+            if (self::coincide(explode(' ', $clave, 2)[1], $ruta) !== null) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static function coincide(string $patron, string $ruta): ?array
+    {
+        if (!str_contains($patron, '{')) {
+            return $patron === $ruta ? [] : null;
+        }
+        $regex = '#^' . preg_replace('#\\\{([a-z_]+)\\\}#', '(?P<$1>[1-9][0-9]{0,9})', preg_quote($patron, '#')) . '$#';
+        if (!preg_match($regex, $ruta, $m)) {
+            return null;
+        }
+        return array_map('intval', array_filter($m, 'is_string', ARRAY_FILTER_USE_KEY));
     }
 }

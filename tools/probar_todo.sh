@@ -26,14 +26,16 @@ printf 'Admin de Prueba\nadmin.prueba@ejemplo.test\ncontrasena-de-prueba\ncontra
   | SS_CONFIG="$TMP/config.php" php "$RAIZ/bin/crear-admin.php" > /dev/null
 
 echo "== Etapa 2: base de datos"
-php "$RAIZ/tests/bd/verificar_bd.php" | tail -1
+php "$RAIZ/tests/bd/verificar_bd.php" | grep -E "FALLA|pruebas:"
 
-echo "== Etapa 3: unidad"
-php "$RAIZ/tests/unidad/seguridad.php" | tail -1
+echo "== Unidad: seguridad y calculadora"
+php "$RAIZ/tests/unidad/seguridad.php" | grep -E "FALLA|pruebas:"
+php "$RAIZ/tests/unidad/calculadora.php" | grep -E "FALLA|pruebas:"
 
-echo "== Etapa 3: punta a punta"
+echo "== Punta a punta: autenticación y alumnos"
 SS_CONFIG="$TMP/config.php" php -S 127.0.0.1:8099 -t "$RAIZ/public" "$RAIZ/tests/e2e/router_dev.php" > "$TMP/servidor.log" 2>&1 &
 SS_CONFIG="$TMP/config_https.php" php -S 127.0.0.1:8098 -t "$RAIZ/public" "$RAIZ/tests/e2e/router_dev.php" > /dev/null 2>&1 &
 sleep 1
 E2E_URL=http://127.0.0.1:8099 E2E_URL_HTTPS=http://127.0.0.1:8098 E2E_CORREOS="$TMP/correos.log" E2E_SESIONES="$TMP/sesiones" \
   php "$RAIZ/tests/e2e/autenticacion.php" | grep -E "FALLA|pruebas:"
+E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/alumnos.php" | grep -E "FALLA|pruebas:"

@@ -40,8 +40,11 @@ final class Sesion
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         ini_set('session.use_trans_sid', '0');
-        ini_set('session.sid_length', '48');
-        ini_set('session.sid_bits_per_character', '6');
+        if (PHP_VERSION_ID < 80400) {
+            // En PHP 8.4 estas opciones están en desuso; su valor por defecto ya es seguro.
+            ini_set('session.sid_length', '48');
+            ini_set('session.sid_bits_per_character', '6');
+        }
         ini_set('session.gc_maxlifetime', (string)(12 * 3600));
         session_set_cookie_params([
             'lifetime' => 0,

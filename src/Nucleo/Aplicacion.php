@@ -101,7 +101,7 @@ final class Aplicacion
             'csrf'             => $this->csrf->token(),
             'inactividad_min'  => $this->configuracion->entero('inactividad_minutos', 30),
         ]);
-        return ($ruta['accion'])($p);
+        return ($ruta['accion'])($p, $ruta['parametros']);
     }
 
     /**

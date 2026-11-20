@@ -27,16 +27,21 @@ final class Vista
         return $layout === null ? $contenido : $this->incluir($layout, $datos + ['contenido' => $contenido]);
     }
 
-    private function incluir(string $plantilla, array $datos): string
+    private function incluir(string $plantilla, array $variables): string
     {
         $archivo = $this->ruta . '/' . $plantilla . '.php';
         if (!is_file($archivo)) {
             throw new \RuntimeException("No existe la vista $plantilla");
         }
-        extract($datos, EXTR_SKIP);
+        // La plantilla se ejecuta en un ámbito limpio: sus variables nunca
+        // chocan con las de este método (p. ej. una variable $datos).
+        $ejecutar = static function (string $__archivo, array $__variables): void {
+            extract($__variables, EXTR_SKIP);
+            require $__archivo;
+        };
         ob_start();
         try {
-            require $archivo;
+            $ejecutar($archivo, $variables);
             return (string)ob_get_clean();
         } catch (\Throwable $e) {
             ob_end_clean();

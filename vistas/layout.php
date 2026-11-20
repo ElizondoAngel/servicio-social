@@ -9,10 +9,16 @@
 </head>
 <body data-inactividad="<?= (int)($inactividad_min ?? 30) ?>" data-csrf="<?= e($csrf ?? '') ?>">
   <header class="barra">
-    <a class="marca" href="/">
-      <span class="marca-sello" aria-hidden="true">SS</span>
-      <span class="marca-nombre">Servicio Social</span>
-    </a>
+    <div class="barra-izq">
+      <a class="marca" href="/">
+        <span class="marca-sello" aria-hidden="true">SS</span>
+        <span class="marca-nombre">Servicio Social</span>
+      </a>
+      <nav class="nav" aria-label="Principal">
+        <a href="/">Expedientes</a>
+        <a href="/alumnos/nuevo">Registrar alumno</a>
+      </nav>
+    </div>
     <div class="barra-usuario">
       <span class="barra-nombre"><?= e($usuario['nombre'] ?? '') ?></span>
       <form method="post" action="/logout">
