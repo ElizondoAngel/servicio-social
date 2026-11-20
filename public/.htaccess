@@ -1,0 +1,6 @@
+# Respaldo por si no se puede configurar el VirtualHost (ver docs/apache.conf).
+# OJO: WinSCP no sube archivos que empiezan con punto; súbelo a mano o usa el VirtualHost.
+Options -Indexes
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]

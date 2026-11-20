@@ -12,6 +12,13 @@ return [
         'entorno'      => 'produccion',          // produccion | desarrollo
         'url_base'     => 'https://serviciosocial.ejemplo.edu.mx',
         'zona_horaria' => 'America/Mexico_City',
+        'forzar_https' => true,                  // en producción siempre true
+        // IPs de proxies inversos de confianza (vacío si Apache recibe la conexión directa)
+        'proxies_confianza' => [],
+    ],
+
+    'rutas' => [
+        'logs' => __DIR__ . '/../storage/logs',
     ],
 
     'bd' => [
@@ -28,6 +35,8 @@ return [
     ],
 
     'correo' => [
+        'driver'        => 'smtp',               // 'archivo' solo en desarrollo
+        'archivo'       => __DIR__ . '/../storage/logs/correos-dev.log',
         'smtp_host'     => '',
         'smtp_puerto'   => 587,
         'smtp_usuario'  => '',
