@@ -42,34 +42,13 @@ for ($d = $inicioA, $k = 0; $k < 20; $d = $d->modify('+1 day')) {
     if ((int)$d->format('N') <= 5) { $ins->execute([$EA, $d->format('Y-m-d'), $adminId]); $k++; }
 }
 
-seccion('Proyección del expediente');
-prueba('muestra conclusión probable, ritmo y escenarios', function () use ($n, $EA) {
+seccion('Página del expediente');
+prueba('ya no muestra el panel de proyección (lo esencial está en el resumen)', function () use ($n, $EA) {
     $c = $n->get("/expedientes/$EA")['cuerpo'];
-    contiene('Conclusión probable', $c);
-    contiene('id="conclusion-probable"', $c);
-    contiene('Ritmo real', $c);
-    contiene('Si cambia la jornada', $c);
-    igual(3, preg_match_all('#<td>\d h por día#', $c), 'tres jornadas');
-    verdadero((bool)preg_match('#<tr class="actual">\s*<td>4 h por día#', $c), 'marca la jornada actual');
-});
-prueba('el ritmo se mide en las últimas 4 semanas completas', function () use ($n, $EA) {
-    // Las horas están en las semanas 1–4; las 4 semanas anteriores a esta (5–8) no tienen.
-    contiene('0.0 <small>h por semana</small>', $n->get("/expedientes/$EA")['cuerpo']);
-});
-prueba('avance por mes natural suma lo registrado', function () use ($n, $EA) {
-    $c = $n->get("/expedientes/$EA")['cuerpo'];
-    contiene('Avance por mes natural', $c);
-    verdadero((bool)preg_match('#<tfoot><tr><th scope="row">Total</th><td class="num">20</td><td class="num">0</td><td class="num">0</td><td class="num">80 h</td>#', $c), 'total 20 asistencias, 80 h');
-});
-prueba('aún sin semanas completas no hay ritmo', fn() => contiene('Aún no hay semanas completas', $n->get("/expedientes/$EB")['cuerpo']));
-prueba('suspendido: sin escenarios', function () use ($n, $EA, $CSRF, $root) {
-    $v = (string)$root->query("SELECT version FROM expedientes WHERE id = $EA")->fetchColumn();
-    $n->post("/expedientes/$EA/estado", ['_csrf' => $CSRF, 'accion' => 'suspender', 'motivo' => 'Prueba', 'version' => $v]);
-    $c = $n->get("/expedientes/$EA")['cuerpo'];
+    noContiene('titulo-proyeccion', $c);
     noContiene('Si cambia la jornada', $c);
-    contiene('Sin proyección mientras el expediente no esté activo', $c);
-    $v = (string)$root->query("SELECT version FROM expedientes WHERE id = $EA")->fetchColumn();
-    $n->post("/expedientes/$EA/estado", ['_csrf' => $CSRF, 'accion' => 'reactivar', 'motivo' => 'Prueba', 'version' => $v]);
+    contiene('Horas acreditadas', $c);
+    contiene('Fecha estimada', $c);
 });
 
 seccion('Tablero: conclusión, orden y filtros');
@@ -83,7 +62,7 @@ prueba('ordenar por conclusión: el que termina antes va primero', function () u
     verdadero($a < $b, 'A antes que B');
     $c = $n->get('/?orden=avance&q=' . urlencode('proy'))['cuerpo'];
     verdadero(strpos($c, "E2E6A-$suf") < strpos($c, "E2E6B-$suf"), 'por avance: A (17 %) antes que B (0 %)');
-    contiene('aria-current="true">Avance', $c);
+    contiene('<option value="avance" selected>', $c);
 });
 prueba('ordenar por nombre (por omisión)', function () use ($n, $suf) {
     $c = $n->get('/?q=proy')['cuerpo'];
@@ -94,7 +73,21 @@ prueba('filtros nuevos responden', function () use ($n) {
     contiene('Listos para concluir', $n->get('/?filtro=listos')['cuerpo']);
     igual(200, $n->get('/?filtro=vencidos')['estado']);
 });
-prueba('el orden se conserva al buscar', fn() => contiene('name="orden" value="avance"', $n->get('/?orden=avance')['cuerpo']));
+prueba('una sola barra: buscar, mostrar y ordenar', function () use ($n) {
+    $c = $n->get('/?orden=avance&filtro=proximos&q=x')['cuerpo'];
+    contiene('<select id="filtro" name="filtro">', $c);
+    contiene('<option value="proximos" selected>', $c);
+    contiene('<option value="avance" selected>', $c);
+    contiene('Quitar filtros', $c);
+    noContiene('class="filtros"', $c, 'ya no hay filas de botones');
+});
+prueba('las tarjetas filtran y un segundo toque quita el filtro', function () use ($n) {
+    $c = $n->get('/')['cuerpo'];
+    contiene('href="/?filtro=proximos"', $c);
+    $c = $n->get('/?filtro=proximos')['cuerpo'];
+    verdadero((bool)preg_match('#class="estadistica enlace destacada activa" aria-current="true" href="/\?"#', $c), 'tarjeta activa que regresa a todos');
+});
+prueba('filtros y orden enviados por el formulario (con valores por omisión)', fn() => igual(200, $n->get('/?q=&filtro=todos&orden=nombre')['estado']));
 
 seccion('Configuración');
 $enviar = fn(array $cambios) => $n->post('/configuracion', $cambios + ['_csrf' => $CSRF] + array_intersect_key($configOriginal, array_flip([

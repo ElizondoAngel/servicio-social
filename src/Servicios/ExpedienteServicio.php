@@ -51,22 +51,6 @@ final class ExpedienteServicio
         return ['horas' => $this->config->entero('horas_requeridas', 480), 'meses' => $this->config->entero('meses_requeridos', 6)];
     }
 
-    /** Conclusión probable, escenarios por jornada, ritmo real y avance por mes. */
-    public function proyeccion(array $exp, array $registros, Resumen $resumen, array $jornadas): array
-    {
-        $registros = array_values($registros);
-        $activo = $exp['estado'] === 'activo';
-        return [
-            'conclusion' => Proyeccion::conclusionProbable($resumen),
-            'escenarios' => $activo && $resumen->restantes > 0
-                ? Proyeccion::escenarios($exp, $registros, $this->inhabiles ??= $this->dias->mapa(), $this->hoy(),
-                    $this->minimos(), $this->config->entero('umbral_proximo_horas', 40), $jornadas)
-                : [],
-            'ritmo'      => Proyeccion::ritmo($registros, $this->hoy(), new DateTimeImmutable((string)$exp['fecha_inicio']), $resumen->restantes),
-            'por_mes'    => Proyeccion::porMes($registros),
-        ];
-    }
-
     /**
      * @return array{estadisticas: array, filas: array}
      */

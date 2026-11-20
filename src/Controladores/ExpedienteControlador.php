@@ -161,7 +161,6 @@ final class ExpedienteControlador
     private function zona(array $exp, ?DateTimeImmutable $enfocar = null): string
     {
         $detalle = $this->calculos->detalle($exp, $enfocar);
-        $detalle['proyeccion'] = $this->calculos->proyeccion($exp, $detalle['registros'], $detalle['resumen'], $this->reglas->jornadasPermitidas());
         return $this->vista->render('expedientes/_zona', $detalle + [
             'expediente' => $exp,
             'hoy'        => $this->calculos->hoy(),

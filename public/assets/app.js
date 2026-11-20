@@ -184,3 +184,13 @@
     }
   });
 })();
+
+// Tablero: al cambiar "Mostrar" u "Ordenar por" se aplica solo (sin JS, con el botón Aplicar).
+(function () {
+  'use strict';
+  var form = document.querySelector('form.js-auto');
+  if (!form) { return; }
+  form.querySelectorAll('select').forEach(function (s) {
+    s.addEventListener('change', function () { form.submit(); });
+  });
+})();

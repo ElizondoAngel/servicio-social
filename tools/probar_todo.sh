@@ -52,6 +52,11 @@ E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/seguridad.php" | grep -E "FAL
 # Va al final: reemplaza la base completa con un volcado.
 E2E_URL=http://127.0.0.1:8099 E2E_CONFIG="$TMP/config.php" PW_ADMIN="$PW_ADMIN" php "$RAIZ/tests/e2e/respaldos.php" | grep -E "FALLA|pruebas:"
 
+echo "== Hoja de estilos: llaves balanceadas"
+php -r '$c = preg_replace("#/\*.*?\*/#s", "", file_get_contents($argv[1])); $d = 0; $mal = false;
+  foreach (str_split($c) as $x) { $d += ($x === "{") - ($x === "}"); $mal = $mal || $d < 0; }
+  echo ($d === 0 && !$mal) ? "1 pruebas: 1 correctas, 0 fallidas\n" : "FALLA: app.css tiene llaves sin cerrar ($d)\n";' "$RAIZ/public/assets/app.css"
+
 echo "== Advertencias de PHP durante las pruebas"
 if grep -hE "PHP (Warning|Notice|Deprecated|Fatal)" "$TMP"/*.log 2>/dev/null; then
   echo "FALLA: hubo advertencias de PHP (arriba)"

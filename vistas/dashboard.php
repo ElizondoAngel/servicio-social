@@ -14,34 +14,45 @@ $enlace = fn(string $f, ?string $o = null) => '/?' . http_build_query(array_filt
 
 <?php if (!empty($aviso)): ?><p class="aviso aviso-exito" role="status"><?= e($aviso) ?></p><?php endif; ?>
 
-<section class="estadisticas" aria-label="Resumen">
-  <div class="estadistica"><span class="eyebrow">Alumnos registrados</span><span class="cifra"><?= (int)$estadisticas['alumnos'] ?></span></div>
-  <div class="estadistica"><span class="eyebrow">Activos</span><span class="cifra"><?= (int)$estadisticas['activos'] ?></span></div>
-  <div class="estadistica destacada"><span class="eyebrow">Próximos a concluir</span><span class="cifra"><?= (int)$estadisticas['proximos'] ?></span><span class="pista">≤ <?= (int)$estadisticas['umbral'] ?> h restantes</span></div>
-  <div class="estadistica"><span class="eyebrow">Concluyeron</span><span class="cifra"><?= (int)$estadisticas['concluidos'] ?></span></div>
+<?php
+// Las tarjetas también sirven de filtro rápido: un toque muestra solo ese grupo (otro toque lo quita).
+$tarjeta = fn(string $f) => e($enlace($filtro === $f ? 'todos' : $f));
+$activa = fn(string $f) => $filtro === $f ? ' activa" aria-current="true' : '';
+?>
+<section class="estadisticas" aria-label="Resumen (toca una tarjeta para filtrar)">
+  <a class="estadistica enlace" href="<?= e($enlace('todos')) ?>"><span class="eyebrow">Alumnos registrados</span><span class="cifra"><?= (int)$estadisticas['alumnos'] ?></span><span class="pista">Ver todos</span></a>
+  <a class="estadistica enlace<?= $activa('activos') ?>" href="<?= $tarjeta('activos') ?>"><span class="eyebrow">Activos</span><span class="cifra"><?= (int)$estadisticas['activos'] ?></span><span class="pista">En servicio</span></a>
+  <a class="estadistica enlace destacada<?= $activa('proximos') ?>" href="<?= $tarjeta('proximos') ?>"><span class="eyebrow">Próximos a concluir</span><span class="cifra"><?= (int)$estadisticas['proximos'] ?></span><span class="pista">≤ <?= (int)$estadisticas['umbral'] ?> h restantes</span></a>
+  <a class="estadistica enlace<?= $activa('concluidos') ?>" href="<?= $tarjeta('concluidos') ?>"><span class="eyebrow">Concluyeron</span><span class="cifra"><?= (int)$estadisticas['concluidos'] ?></span><span class="pista">Servicio terminado</span></a>
   <div class="estadistica"><span class="eyebrow">Horas acreditadas</span><span class="cifra"><?= number_format((int)$estadisticas['horas']) ?> <small>h</small></span><span class="pista">entre todos los alumnos</span></div>
 </section>
 
 <section class="panel">
-  <form class="buscador" method="get" action="/" role="search">
-    <label class="oculto" for="q">Buscar por nombre o matrícula</label>
-    <input id="q" name="q" type="search" value="<?= e($busqueda) ?>" placeholder="Buscar por nombre o matrícula" maxlength="80">
-    <?php if ($filtro !== 'todos'): ?><input type="hidden" name="filtro" value="<?= e($filtro) ?>"><?php endif; ?>
-    <?php if ($orden !== 'nombre'): ?><input type="hidden" name="orden" value="<?= e($orden) ?>"><?php endif; ?>
-    <button class="btn" type="submit">Buscar</button>
-    <?php if ($busqueda !== ''): ?><a class="btn-texto" href="<?= e($enlace($filtro)) ?>&amp;q=">Limpiar</a><?php endif; ?>
+  <form class="barra-tablero js-auto" method="get" action="/" role="search">
+    <div class="campo buscar">
+      <label for="q">Buscar</label>
+      <input id="q" name="q" type="search" value="<?= e($busqueda) ?>" placeholder="Nombre o matrícula" maxlength="80">
+    </div>
+    <div class="campo">
+      <label for="filtro">Mostrar</label>
+      <select id="filtro" name="filtro">
+        <?php foreach ($filtros as $clave => $nombre): ?><option value="<?= e($clave) ?>"<?= $clave === $filtro ? ' selected' : '' ?>><?= e($nombre) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="orden">Ordenar por</label>
+      <select id="orden" name="orden">
+        <?php foreach ($ordenes as $clave => $nombre): ?><option value="<?= e($clave) ?>"<?= $clave === $orden ? ' selected' : '' ?>><?= e($nombre) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="campo boton"><button class="btn" type="submit">Aplicar</button></div>
   </form>
-  <nav class="filtros" aria-label="Filtrar">
-    <?php foreach ($filtros as $clave => $nombre): ?>
-      <a class="filtro<?= $clave === $filtro ? ' activo' : '' ?>" href="<?= e($enlace($clave)) ?>"<?= $clave === $filtro ? ' aria-current="page"' : '' ?>><?= e($nombre) ?></a>
-    <?php endforeach; ?>
-  </nav>
-  <nav class="filtros orden" aria-label="Ordenar">
-    <span class="pista">Ordenar por:</span>
-    <?php foreach ($ordenes as $clave => $nombre): ?>
-      <a class="filtro<?= $clave === $orden ? ' activo' : '' ?>" href="<?= e($enlace($filtro, $clave)) ?>"<?= $clave === $orden ? ' aria-current="true"' : '' ?>><?= e($nombre) ?></a>
-    <?php endforeach; ?>
-  </nav>
+  <?php if ($filtro !== 'todos' || $busqueda !== ''): ?>
+  <p class="filtro-actual" role="status">
+    <?= count($filas) ?> resultado(s)<?= $filtro !== 'todos' ? ' · <b>' . e($filtros[$filtro]) . '</b>' : '' ?><?= $busqueda !== '' ? ' · «' . e($busqueda) . '»' : '' ?>
+    <a class="btn-texto" href="<?= e('/?' . http_build_query(array_filter(['orden' => $orden === 'nombre' ? '' : $orden]))) ?>">Quitar filtros</a>
+  </p>
+  <?php endif; ?>
 
   <?php if ($filas === []): ?>
     <div class="vacio">
