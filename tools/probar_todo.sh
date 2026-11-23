@@ -38,6 +38,7 @@ php "$RAIZ/tests/unidad/calculadora.php" | grep -E "FALLA|pruebas:"
 php "$RAIZ/tests/unidad/calendario.php" | grep -E "FALLA|pruebas:"
 php "$RAIZ/tests/unidad/proyeccion.php" | grep -E "FALLA|pruebas:"
 php "$RAIZ/tests/unidad/respaldos.php" | grep -E "FALLA|pruebas:"
+php "$RAIZ/tests/unidad/ruta_base.php" | grep -E "FALLA|pruebas:"
 
 echo "== Punta a punta: autenticación, alumnos, expediente, proyección, seguridad y respaldos"
 SS_CONFIG="$TMP/config.php" php -S 127.0.0.1:8099 -t "$RAIZ/public" "$RAIZ/tests/e2e/router_dev.php" > "$TMP/servidor.log" 2>&1 &

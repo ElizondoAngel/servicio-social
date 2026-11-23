@@ -48,7 +48,7 @@ final class Sesion
         ini_set('session.gc_maxlifetime', (string)(12 * 3600));
         session_set_cookie_params([
             'lifetime' => 0,
-            'path'     => '/',
+            'path'     => \ServicioSocial\Nucleo\RutaBase::base() ?: '/',
             'secure'   => $https || $this->config->esProduccion(),
             'httponly' => true,
             'samesite' => 'Lax',

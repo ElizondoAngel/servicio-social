@@ -1,0 +1,15 @@
+# Para instalar el sistema DENTRO de la carpeta pública de otro sitio
+# (p. ej. /var/www/grasc/servicio-social → grasc.utn.edu.mx/servicio-social).
+#
+# Toda petición se manda a public/: así config/, storage/, src/, .git y
+# los demás archivos internos nunca se pueden descargar.
+# Requiere que Apache permita .htaccess (AllowOverride All o FileInfo+Options)
+# y mod_rewrite. Si el VirtualHost apunta directo a public/, este archivo no se usa.
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^public/ - [L]
+  RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

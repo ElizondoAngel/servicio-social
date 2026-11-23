@@ -35,7 +35,7 @@ final class Respuesta
         if (!str_starts_with($ruta, '/') || str_starts_with($ruta, '//')) {
             $ruta = '/';
         }
-        return new self(303, '', ['Location' => $ruta]);
+        return new self(303, '', ['Location' => RutaBase::url($ruta)]);
     }
 
     public static function vacia(int $estado = 204): self

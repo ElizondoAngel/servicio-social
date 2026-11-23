@@ -22,7 +22,7 @@ final class Peticion
     public static function desdeGlobales(array $proxiesConfianza = []): self
     {
         $ruta = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-        $ruta = '/' . trim(rawurldecode($ruta), '/');
+        $ruta = RutaBase::quitar('/' . trim(rawurldecode($ruta), '/'));
         return new self(strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'), $ruta, $_GET, $_POST, $_SERVER, $proxiesConfianza, $_FILES);
     }
 

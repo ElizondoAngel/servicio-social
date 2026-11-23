@@ -30,6 +30,7 @@ if (!is_file($rutaConfig)) {
     exit('Falta config/config.local.php. Copia config/config.ejemplo.php y llénalo.');
 }
 $config = new Config(require $rutaConfig);
+\ServicioSocial\Nucleo\RutaBase::fijar((string)$config->get('app.url_base', ''));
 
 date_default_timezone_set($config->get('app.zona_horaria', 'America/Mexico_City'));
 mb_internal_encoding('UTF-8');

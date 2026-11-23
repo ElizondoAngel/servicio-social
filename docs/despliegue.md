@@ -93,6 +93,14 @@ mariadb -u ss_admin -p servicio_social < 006_respaldos_retencion.sql
 6. Crear el administrador: `php bin/crear-admin.php`.
 7. Verificar: `php bin/verificar-instalacion.php`. Debe terminar con **0 fallas**. Los avisos explican qué falta y cómo arreglarlo.
 
+### 3.1 Instalarlo dentro de la carpeta de otro sitio (subcarpeta)
+
+Si el sistema va en una subcarpeta de un sitio existente (por ejemplo `/var/www/grasc/servicio-social` → `https://grasc.utn.edu.mx/servicio-social`):
+
+1. `app.url_base` con la ruta completa: `https://grasc.utn.edu.mx/servicio-social`. Enlaces, redirecciones, JavaScript y la cookie de sesión toman esa ruta.
+2. El `.htaccess` de la raíz del proyecto manda todo a `public/`, así `config/`, `storage/`, `src/` y `.git` no se pueden descargar. Necesita que el sitio permita `.htaccess` (`AllowOverride All`) y `mod_rewrite`.
+3. **Comprobar que funciona** abriendo `https://…/servicio-social/README.md` y `https://…/servicio-social/config/config.ejemplo.php`: las dos deben mostrar la página «No encontrado» del sistema. Si se descargan, el `.htaccess` no se está aplicando: hay que permitirlo en el VirtualHost o sacar el proyecto de la carpeta pública y usar un `Alias /servicio-social /var/www/servicio-social/public`.
+
 ## 4. Tareas programadas (cron del usuario de Apache)
 
 ```cron

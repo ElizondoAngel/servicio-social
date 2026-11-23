@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
   <link rel="stylesheet" href="/assets/app.css">
 </head>
-<body data-inactividad="<?= (int)($inactividad_min ?? 30) ?>" data-csrf="<?= e($csrf ?? '') ?>">
+<body data-base="<?= e(\ServicioSocial\Nucleo\RutaBase::base()) ?>" data-inactividad="<?= (int)($inactividad_min ?? 30) ?>" data-csrf="<?= e($csrf ?? '') ?>">
   <header class="barra">
     <div class="barra-izq">
       <a class="marca" href="/">

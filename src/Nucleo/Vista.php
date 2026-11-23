@@ -24,7 +24,7 @@ final class Vista
     {
         $datos += $this->compartidos;
         $contenido = $this->incluir($plantilla, $datos);
-        return $layout === null ? $contenido : $this->incluir($layout, $datos + ['contenido' => $contenido]);
+        return RutaBase::enHtml($layout === null ? $contenido : $this->incluir($layout, $datos + ['contenido' => $contenido]));
     }
 
     private function incluir(string $plantilla, array $variables): string

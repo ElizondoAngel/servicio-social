@@ -1,3 +1,6 @@
+// Ruta base cuando el sistema vive en una subcarpeta (p. ej. /servicio-social); vacía en la raíz.
+var BASE = (document.body && document.body.dataset.base) || '';
+
 // Aviso de cierre por inactividad: un minuto antes del límite pregunta si
 // se quiere seguir trabajando; si no hay respuesta, va al inicio de sesión.
 (function () {
@@ -15,17 +18,17 @@
     clearTimeout(temporizadorCierre);
     aviso.hidden = true;
     temporizadorAviso = setTimeout(function () { aviso.hidden = false; }, Math.max(0, limiteMs - 60 * 1000));
-    temporizadorCierre = setTimeout(function () { window.location.href = '/login?m=expirada'; }, limiteMs);
+    temporizadorCierre = setTimeout(function () { window.location.href = BASE + '/login?m=expirada'; }, limiteMs);
   }
 
   document.getElementById('seguir-trabajando').addEventListener('click', function () {
-    fetch('/sesion/renovar', {
+    fetch(BASE + '/sesion/renovar', {
       method: 'POST',
       headers: { 'X-CSRF-Token': csrf, 'Accept': 'application/json' },
       credentials: 'same-origin'
     }).then(function (r) {
-      if (r.ok) { programar(); } else { window.location.href = '/login?m=expirada'; }
-    }).catch(function () { window.location.href = '/login?m=expirada'; });
+      if (r.ok) { programar(); } else { window.location.href = BASE + '/login?m=expirada'; }
+    }).catch(function () { window.location.href = BASE + '/login?m=expirada'; });
   });
 
   programar();
@@ -40,7 +43,7 @@
   var dialogo = document.getElementById('dialogo-dia');
   if (!zona || !dialogo || typeof dialogo.showModal !== 'function' || !window.fetch) { return; }
   var contenido = document.getElementById('dialogo-contenido');
-  var base = '/expedientes/' + zona.dataset.expediente;
+  var base = BASE + '/expedientes/' + zona.dataset.expediente;
   var ultimoDia = null;
 
   var aviso = document.createElement('div');
@@ -59,7 +62,7 @@
   }
 
   function sesionVencida(r) {
-    if (r.status === 401) { window.location.href = '/login?m=expirada'; return true; }
+    if (r.status === 401) { window.location.href = BASE + '/login?m=expirada'; return true; }
     return false;
   }
 
