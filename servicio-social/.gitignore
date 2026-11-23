@@ -1,8 +1,0 @@
-# Credenciales y datos del servidor: nunca al repositorio
-config/config.local.php
-storage/*
-!storage/README.md
-vendor/
-*.sql.gz
-*.json.bak
-.DS_Store
