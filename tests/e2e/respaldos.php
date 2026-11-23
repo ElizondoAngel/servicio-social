@@ -140,6 +140,22 @@ prueba('descargar: archivo adjunto y evento en el historial', function () use ($
     igual('no-store', $d['cabeceras']['cache-control'] ?? '');
     igual(1, (int)$root->query("SELECT COUNT(*) FROM historial WHERE accion = 'descargar_respaldo' AND entidad_id = {$R['id']}")->fetchColumn());
 });
+prueba('Excel: exige confirmar, es un .xlsx válido y deja evento', function () use ($n, $CSRF, &$R, $root) {
+    igual(303, $n->post("/respaldos/{$R['id']}/excel", ['_csrf' => $CSRF])['estado']);
+    $d = $n->post("/respaldos/{$R['id']}/excel", ['_csrf' => $CSRF, 'entiendo' => '1']);
+    igual(200, $d['estado']);
+    igual('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $d['cabeceras']['content-type'] ?? '');
+    contiene('filename="' . str_replace('.json.gz', '.xlsx', $R['archivo']) . '"', $d['cabeceras']['content-disposition'] ?? '');
+    $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($tmp, $d['cuerpo']);
+    $z = new ZipArchive();
+    igual(true, $z->open($tmp, ZipArchive::CHECKCONS));
+    contiene('name="Expedientes"', $z->getFromName('xl/workbook.xml'));
+    $z->close();
+    unlink($tmp);
+    igual(1, (int)$root->query("SELECT COUNT(*) FROM historial WHERE accion = 'descargar_respaldo_excel' AND entidad_id = {$R['id']}")->fetchColumn());
+    igual(405, $n->get("/respaldos/{$R['id']}/excel")['estado']);
+});
 prueba('los archivos no tienen URL pública', function () use ($n, &$R) {
     igual(404, $n->get('/respaldos/' . $R['archivo'])['estado']);
     igual(404, $n->get('/storage/respaldos/' . $R['archivo'])['estado']);

@@ -269,6 +269,8 @@ code.hash { font-size: 12px; word-break: break-all; }
 @media (max-width: 640px) { .filtros-historial { grid-template-columns: minmax(0, 1fr); } }
 .acciones-fila { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .acciones-fila form { margin: 0; display: flex; gap: 6px; align-items: center; }
+.acciones-fila .form-descarga { flex-wrap: wrap; max-width: 260px; }
+.form-descarga .casilla-chica { flex-basis: 100%; }
 .casilla-chica { font-size: 12px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
 .tabla tr.eliminado td { color: var(--muted); }
 .tabla tr.cambio { background: var(--ok-soft); }
@@ -300,3 +302,12 @@ a.estadistica.enlace:focus-visible { outline: 3px solid var(--hol); outline-offs
   .nav::-webkit-scrollbar { display: none; }
   .nav a { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; }
 }
+
+/* Buzón de prueba (solo desarrollo) */
+.correo-dev { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 12px 0; text-align: left; }
+.correo-dev.reciente { border-color: var(--accent); }
+.correo-dev h2 { font-size: 16px; margin: 4px 0 10px; }
+.correo-dev .pista { margin: 0; }
+.correo-dev summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.texto-correo { white-space: pre-wrap; word-break: break-word; font-size: 13px; background: var(--bg); border-radius: 8px; padding: 10px; }
+.enlace-buzon { font-size: 14px; }

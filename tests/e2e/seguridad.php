@@ -36,14 +36,49 @@ prueba('se encontraron las rutas de la aplicación', function () use ($rutas, $p
     verdadero(count($privadas) >= 30, 'privadas');
     verdadero(count($posts) >= 20, 'POST');
 });
-prueba('las únicas rutas públicas son las de acceso', function () use ($rutas) {
+prueba('las únicas rutas públicas son las de acceso (y el buzón de desarrollo)', function () use ($rutas) {
     $publicas = array_unique(array_map(fn($r) => $r['ruta'], array_filter($rutas, fn($r) => $r['publica'])));
     sort($publicas);
-    igual(['/login', '/recuperar', '/restablecer'], array_values($publicas));
+    igual(['/dev/correos', '/login', '/recuperar', '/restablecer'], array_values($publicas));
 });
 
 seccion('Sin sesión no se entra a nada privado');
 $anonimo = new Navegador($URL);
+prueba('buzón de prueba en desarrollo: muestra el enlace y el enlace funciona', function () use ($anonimo, $ADMIN, $root) {
+    $root->exec('DELETE FROM tokens_reset');
+    $csrf = $anonimo->csrf('/recuperar');
+    contiene('Buzón de prueba (desarrollo)', $anonimo->get('/recuperar')['cuerpo']);
+    $r = $anonimo->post('/recuperar', ['_csrf' => $csrf, 'correo' => $ADMIN]);
+    contiene('abrir el buzón de prueba', $anonimo->get($r['cabeceras']['location'])['cuerpo']);
+    $b = $anonimo->get('/dev/correos');
+    igual(200, $b['estado']);
+    verdadero((bool)preg_match('#href="https?://[^"]+(/restablecer\?t=[0-9a-f]{64})"#', $b['cuerpo'], $m), 'enlace en el buzón');
+    $x = $anonimo->get($m[1]);
+    igual(303, $x['estado'], 'el enlace abre el formulario');
+    igual('/restablecer', $x['cabeceras']['location'] ?? '');
+});
+prueba('buzón de prueba con configuración de producción: 404', function () {
+    $config = getenv('E2E_CONFIG') ?: '';
+    if (!is_file($config)) {
+        verdadero(true, 'sin E2E_CONFIG: se omite');
+        return;
+    }
+    $tmp = tempnam(sys_get_temp_dir(), 'cfg');
+    file_put_contents($tmp, '<?php $c = require ' . var_export($config, true)
+        . "; \$c['app']['entorno'] = 'produccion'; \$c['app']['forzar_https'] = false; \$c['correo']['driver'] = 'smtp'; return \$c;");
+    $raiz = dirname(__DIR__, 2);
+    $srv = proc_open(['php', '-S', '127.0.0.1:8097', '-t', "$raiz/public", "$raiz/tests/e2e/router_dev.php"],
+        [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $tubos, null, ['SS_CONFIG' => $tmp] + getenv());
+    usleep(700000);
+    $prod = new Navegador('http://127.0.0.1:8097');
+    $estado = $prod->get('/dev/correos')['estado'];
+    $recuperar = $prod->get('/recuperar')['cuerpo'];
+    proc_terminate($srv);
+    proc_close($srv);
+    unlink($tmp);
+    igual(404, $estado);
+    noContiene('Buzón de prueba', $recuperar);
+});
 prueba('cada GET privado redirige al inicio de sesión', function () use ($anonimo, $privadas, $concreta) {
     foreach (array_filter($privadas, fn($r) => $r['metodo'] === 'GET') as $r) {
         $x = $anonimo->get($concreta($r['ruta']));

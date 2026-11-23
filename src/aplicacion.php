@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 use ServicioSocial\Controladores\AuthControlador;
 use ServicioSocial\Controladores\AlumnoControlador;
+use ServicioSocial\Controladores\BuzonDevControlador;
 use ServicioSocial\Controladores\CatalogoControlador;
 use ServicioSocial\Controladores\ConfiguracionControlador;
 use ServicioSocial\Controladores\HistorialControlador;
@@ -85,6 +86,7 @@ function crearAplicacion(Config $config): Aplicacion
     $asistenciaServicio = new AsistenciaServicio($bd, $asistencias, $dias, $firmas, $reglas);
     $gestion = new GestionExpedienteServicio($bd, $expedientes, $asistencias, $configuracion, $reglas);
 
+    $vista->compartir(['buzonDev' => BuzonDevControlador::disponible($config)]);
     $authCtl = new AuthControlador($vista, $sesion, $csrf, $auth, $recuperacion);
     $tableroCtl = new DashboardControlador($vista, $sesion, $calculos);
     $alumnoCtl = new AlumnoControlador($vista, $sesion, $alumnoServicio, $alumnos, $expedientes, $calculos, $usuarios);
@@ -105,6 +107,8 @@ function crearAplicacion(Config $config): Aplicacion
     $r->post('/recuperar', [$authCtl, 'procesarOlvide'], ['publico' => true]);
     $r->get('/restablecer', [$authCtl, 'mostrarRestablecer'], ['publico' => true]);
     $r->post('/restablecer', [$authCtl, 'procesarRestablecer'], ['publico' => true]);
+    // Solo desarrollo: fuera de él (o desde otra computadora) responde 404.
+    $r->get('/dev/correos', [new BuzonDevControlador($vista, $config), 'ver'], ['publico' => true]);
 
     $r->get('/', [$tableroCtl, 'inicio'], ['permiso' => 'expedientes.ver']);
     $r->get('/alumnos/nuevo', [$alumnoCtl, 'nuevo'], ['permiso' => 'alumnos.crear']);
@@ -128,6 +132,7 @@ function crearAplicacion(Config $config): Aplicacion
     $r->post('/respaldos', [$respaldoCtl, 'crear'], ['permiso' => 'respaldos.crear']);
     $r->post('/respaldos/{id}/verificar', [$respaldoCtl, 'verificar'], ['permiso' => 'respaldos.ver']);
     $r->post('/respaldos/{id}/descargar', [$respaldoCtl, 'descargar'], ['permiso' => 'respaldos.descargar']);
+    $r->post('/respaldos/{id}/excel', [$respaldoCtl, 'excel'], ['permiso' => 'respaldos.descargar']);
     $r->post('/respaldos/restaurar', [$respaldoCtl, 'preparar'], ['permiso' => 'respaldos.restaurar']);
     $r->post('/respaldos/restaurar/confirmar', [$respaldoCtl, 'confirmar'], ['permiso' => 'respaldos.restaurar']);
     $r->get('/configuracion', [$configuracionCtl, 'ver'], ['permiso' => 'configuracion.ver']);

@@ -39,7 +39,7 @@ $conArchivo = array_values(array_filter($respaldos, fn($r) => $r['archivo_elimin
 
 <section class="panel">
   <h2>Versiones guardadas</h2>
-  <p class="nota">Se conservan los más recientes según la configuración; de los anteriores queda el registro sin el archivo. Los archivos están fuera de la carpeta pública y solo se descargan desde aquí.</p>
+  <p class="nota">Se conservan los más recientes según la configuración; de los anteriores queda el registro sin el archivo. Los archivos están fuera de la carpeta pública y solo se descargan desde aquí. <b>Excel</b> sirve para consultar la información (una hoja por tabla); para restaurar se usa el <b>respaldo .json.gz</b>, que lleva la firma.</p>
   <?php if (!$respaldos): ?>
     <p class="nota">Todavía no hay respaldos.</p>
   <?php else: ?>
@@ -62,7 +62,8 @@ $conArchivo = array_values(array_filter($respaldos, fn($r) => $r['archivo_elimin
             <form method="post" action="/respaldos/<?= (int)$r['id'] ?>/descargar" class="form-descarga">
               <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
               <label class="casilla-chica"><input type="checkbox" name="entiendo" value="1" required> Contiene datos personales</label>
-              <button class="btn chico" type="submit">Descargar</button>
+              <button class="btn chico" type="submit" formaction="/respaldos/<?= (int)$r['id'] ?>/excel">Excel</button>
+              <button class="btn chico" type="submit" title="Archivo firmado; es el que sirve para restaurar">Archivo .json.gz</button>
             </form>
             <?php endif; ?>
           </td>

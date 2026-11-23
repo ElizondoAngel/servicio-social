@@ -48,7 +48,7 @@ E2E_URL=http://127.0.0.1:8099 E2E_URL_HTTPS=http://127.0.0.1:8098 E2E_CORREOS="$
 E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/alumnos.php" | grep -E "FALLA|pruebas:"
 E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/expediente.php" | grep -E "FALLA|pruebas:"
 E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/proyeccion.php" | grep -E "FALLA|pruebas:"
-E2E_URL=http://127.0.0.1:8099 php "$RAIZ/tests/e2e/seguridad.php" | grep -E "FALLA|pruebas:"
+E2E_URL=http://127.0.0.1:8099 E2E_CONFIG="$TMP/config.php" php "$RAIZ/tests/e2e/seguridad.php" | grep -E "FALLA|pruebas:"
 # Va al final: reemplaza la base completa con un volcado.
 E2E_URL=http://127.0.0.1:8099 E2E_CONFIG="$TMP/config.php" PW_ADMIN="$PW_ADMIN" php "$RAIZ/tests/e2e/respaldos.php" | grep -E "FALLA|pruebas:"
 

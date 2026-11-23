@@ -130,6 +130,20 @@ final class RespaldoServicio
         return ['nombre' => $fila['archivo'], 'contenido' => (string)file_get_contents($archivo)];
     }
 
+    /**
+     * El mismo respaldo como libro de Excel, para consultarlo. Antes se
+     * valida la firma: nunca se convierte un archivo alterado.
+     */
+    public function excelParaDescargar(int $id, ?int $usuarioId, ?string $ip, ?string $agente): array
+    {
+        $fila = $this->buscar($id);
+        $leido = $this->leer($fila);
+        $nombre = preg_replace('/\.json\.gz$/', '.xlsx', (string)$fila['archivo']);
+        $contenido = ExcelRespaldo::generar($leido, (string)$fila['archivo']);
+        $this->historial->evento('descargar_respaldo_excel', 'respaldos', $id, $usuarioId, ['archivo' => $nombre], $ip, $agente);
+        return ['nombre' => $nombre, 'contenido' => $contenido];
+    }
+
     /** Bytes del archivo de un respaldo registrado (sin dejar evento: uso interno). */
     public function contenidoInterno(array $fila): string
     {

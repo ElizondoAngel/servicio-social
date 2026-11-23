@@ -15,6 +15,7 @@ spl_autoload_register(static function (string $c): void {
 });
 
 use ServicioSocial\Dominio\SelloHistorial;
+use ServicioSocial\Servicios\Respaldos\ExcelRespaldo;
 use ServicioSocial\Servicios\Respaldos\FormatoRespaldo;
 use ServicioSocial\Servicios\Respaldos\Importador;
 use ServicioSocial\Servicios\Respaldos\RespaldoInvalido;
@@ -179,6 +180,51 @@ prueba('14 diarios y 8 domingos más viejos', function () {
     verdadero(is_file("$dir/previo-restauracion-20260101-000000.sql.gz"), 'no toca los previos');
     array_map('unlink', glob("$dir/*"));
     rmdir($dir);
+});
+
+seccion('Respaldo en Excel');
+prueba('el .xlsx es un ZIP válido con una hoja por tabla y XML bien formado', function () use ($archivo, $LLAVE) {
+    $xlsx = ExcelRespaldo::generar(FormatoRespaldo::leer($archivo, $LLAVE), 'respaldo-prueba.json.gz');
+    $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($tmp, $xlsx);
+    $z = new ZipArchive();
+    igual(true, $z->open($tmp, ZipArchive::CHECKCONS));
+    $libro = $z->getFromName('xl/workbook.xml');
+    foreach (['Resumen', 'Alumnos', 'Expedientes', 'Asistencias', 'Firmas semanales', 'Días inhábiles', 'Usuarios', 'Configuración', 'Historial'] as $h) {
+        contiene('name="' . $h . '"', $libro);
+    }
+    for ($i = 0; $i < $z->numFiles; $i++) {
+        $n = $z->getNameIndex($i);
+        verdadero(simplexml_load_string($z->getFromIndex($i)) !== false, "$n es XML válido");
+    }
+    $exp = $z->getFromName('xl/worksheets/sheet3.xml'); // Expedientes
+    contiene('Ana Núñez', $exp, 'nombre del alumno junto a su ID');
+    contiene('>Sí<', $exp, 'feriados_acreditan como Sí');
+    $asis = $z->getFromName('xl/worksheets/sheet4.xml');
+    contiene('Ñandú &quot;comillas&quot; \\ y emoji 🙂', $asis, 'texto escapado');
+    contiene('<v>4</v>', $asis, 'horas como número');
+    $alum = $z->getFromName('xl/worksheets/sheet2.xml');
+    contiene('t="inlineStr"><is><t xml:space="preserve">A-001', $alum, 'matrícula como texto');
+    $z->close();
+    unlink($tmp);
+});
+prueba('un texto que empieza con = no se vuelve fórmula y se quitan caracteres inválidos', function () {
+    $l = new \ServicioSocial\Nucleo\LibroExcel();
+    $l->agregarHoja('Hoja: rara/[x]', ['A'], [["=HYPERLINK(\"http://x\")\x01"]]);
+    $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+    file_put_contents($tmp, $l->generar());
+    $z = new ZipArchive();
+    $z->open($tmp);
+    $h = $z->getFromName('xl/worksheets/sheet1.xml');
+    verdadero(!str_contains($h, '<f>'), 'sin fórmulas');
+    contiene('=HYPERLINK(&quot;http://x&quot;)</t>', $h);
+    contiene('name="Hoja  rara  x "', $z->getFromName('xl/workbook.xml'), 'nombre de hoja sin caracteres prohibidos');
+    $z->close();
+    unlink($tmp);
+});
+prueba('no se convierte un respaldo alterado', function () use ($archivo, $alterar, $falla) {
+    $malo = $alterar($archivo, fn($t) => str_replace('Ana', 'Eva', $t));
+    $falla(fn() => FormatoRespaldo::leer($malo, str_repeat('ab', 32)), 'huella');
 });
 
 resumen();

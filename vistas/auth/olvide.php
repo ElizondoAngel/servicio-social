@@ -9,4 +9,4 @@
   <input id="correo" name="correo" type="email" autocomplete="email" required value="<?= e($correo) ?>" autofocus>
   <button class="btn primario" type="submit">Enviar enlace</button>
 </form>
-<p class="pie"><a href="/login">Volver a iniciar sesión</a></p>
+<p class="pie"><a href="/login">Volver a iniciar sesión</a><?php if (!empty($buzonDev)): ?> · <a href="/dev/correos">Buzón de prueba (desarrollo)</a><?php endif; ?></p>

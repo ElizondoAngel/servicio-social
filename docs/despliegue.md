@@ -108,7 +108,7 @@ Los dos scripts salen con código 1 si algo falla. Con `MAILTO=` en el crontab, 
 
 | Nivel | Qué | Cuándo | Cuántos | Dónde |
 | --- | --- | --- | --- | --- |
-| 1 | JSON firmado (HMAC-SHA256) de todas las tablas, sin contraseñas | Cada noche y con el botón «Crear respaldo ahora» | Últimos 30 (Configuración) | `storage/respaldos/` |
+| 1 | JSON firmado (HMAC-SHA256) de todas las tablas, sin contraseñas. Se puede descargar también en Excel para consulta (no sirve para restaurar) | Cada noche y con el botón «Crear respaldo ahora» | Últimos 30 (Configuración) | `storage/respaldos/` |
 | 2 | Volcado completo de MariaDB, triggers incluidos | Cada noche | 14 diarios y 8 dominicales | `storage/volcados/` |
 | 3 | Volcado cifrado con `age` (llave pública) | Domingos | Lo que decida TI | **PENDIENTE TI** |
 

@@ -88,6 +88,26 @@ final class RespaldoControlador
         ]);
     }
 
+    /** El respaldo como Excel, para consultarlo (no sirve para restaurar). */
+    public function excel(Peticion $p, array $params): Respuesta
+    {
+        if ($p->texto('entiendo') !== '1') {
+            $this->sesion->set('error', 'Para descargar confirma que entiendes que el archivo contiene datos personales.');
+            return Respuesta::redirigir('/respaldos');
+        }
+        try {
+            $a = $this->servicio->excelParaDescargar($params['id'], $this->usuarioId(), $p->ip(), $p->agente());
+        } catch (RespaldoInvalido $e) {
+            $this->sesion->set('error', $e->getMessage());
+            return Respuesta::redirigir('/respaldos');
+        }
+        return new Respuesta(200, $a['contenido'], [
+            'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $a['nombre'] . '"',
+            'Content-Length'      => (string)strlen($a['contenido']),
+        ]);
+    }
+
     /** Paso 1: elegir el archivo, validarlo y mostrar qué se agregaría. No escribe nada. */
     public function preparar(Peticion $p): Respuesta
     {
