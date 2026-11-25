@@ -9,7 +9,10 @@ $enlace = fn(string $f, ?string $o = null) => '/?' . http_build_query(array_filt
     <div class="eyebrow">Hoy, <?= e(fecha_corta(new DateTimeImmutable('today'))) ?></div>
     <h1>Expedientes</h1>
   </div>
-  <a class="btn primario" href="/alumnos/nuevo">Registrar alumno</a>
+  <div class="acciones">
+    <a class="btn" href="<?= e('/expedientes/imprimir' . rtrim('?' . http_build_query(array_filter(['q' => $busqueda, 'filtro' => $filtro === 'todos' ? '' : $filtro, 'orden' => $orden === 'nombre' ? '' : $orden])), '?')) ?>"<?= count($filas) === 0 ? ' aria-disabled="true"' : '' ?>>Imprimir <?= $filtro !== 'todos' || $busqueda !== '' ? 'los mostrados' : 'todos' ?> (<?= count($filas) ?>)</a>
+    <a class="btn primario" href="/alumnos/nuevo">Registrar alumno</a>
+  </div>
 </div>
 
 <?php if (!empty($aviso)): ?><p class="aviso aviso-exito" role="status"><?= e($aviso) ?></p><?php endif; ?>
@@ -59,7 +62,10 @@ $activa = fn(string $f) => $filtro === $f ? ' activa" aria-current="true' : '';
       <?php if ((int)$estadisticas['alumnos'] === 0): ?>
         <p><strong>Todavía no hay alumnos registrados.</strong></p>
         <p>Registra al primero para abrir su expediente y empezar su bitácora.</p>
-        <a class="btn primario" href="/alumnos/nuevo">Registrar alumno</a>
+        <div class="acciones">
+    <a class="btn" href="<?= e('/expedientes/imprimir' . rtrim('?' . http_build_query(array_filter(['q' => $busqueda, 'filtro' => $filtro === 'todos' ? '' : $filtro, 'orden' => $orden === 'nombre' ? '' : $orden])), '?')) ?>"<?= count($filas) === 0 ? ' aria-disabled="true"' : '' ?>>Imprimir <?= $filtro !== 'todos' || $busqueda !== '' ? 'los mostrados' : 'todos' ?> (<?= count($filas) ?>)</a>
+    <a class="btn primario" href="/alumnos/nuevo">Registrar alumno</a>
+  </div>
       <?php else: ?>
         <p>No hay expedientes que coincidan<?= $busqueda !== '' ? ' con «' . e($busqueda) . '»' : '' ?>.</p>
       <?php endif; ?>

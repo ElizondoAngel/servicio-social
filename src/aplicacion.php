@@ -9,6 +9,7 @@ declare(strict_types=1);
 use ServicioSocial\Controladores\AuthControlador;
 use ServicioSocial\Controladores\AlumnoControlador;
 use ServicioSocial\Controladores\BuzonDevControlador;
+use ServicioSocial\Controladores\ImpresionControlador;
 use ServicioSocial\Controladores\CatalogoControlador;
 use ServicioSocial\Controladores\ConfiguracionControlador;
 use ServicioSocial\Controladores\HistorialControlador;
@@ -96,6 +97,7 @@ function crearAplicacion(Config $config): Aplicacion
     $respaldoCtl = new RespaldoControlador($vista, $sesion, crearServicioRespaldos($config, $bd), $usuarios,
         (string)$config->get('rutas.temporal', __DIR__ . '/../storage/tmp'));
     $configuracionCtl = new ConfiguracionControlador($vista, $sesion, new ConfiguracionServicio($bd, $configuracion));
+    $impresionCtl = new ImpresionControlador($vista, $expedientes, $alumnos, $calculos);
     $catalogoCtl = new CatalogoControlador($vista, $sesion, new CatalogoServicio($bd, $dias), $dias);
 
     $r = new Router();
@@ -118,7 +120,9 @@ function crearAplicacion(Config $config): Aplicacion
     $r->post('/alumnos/{id}/editar', [$alumnoCtl, 'actualizar'], ['permiso' => 'alumnos.editar']);
     $r->get('/alumnos/{id}/expedientes/nuevo', [$expedienteCtl, 'nuevoPeriodo'], ['permiso' => 'expedientes.crear']);
     $r->post('/alumnos/{id}/expedientes/nuevo', [$expedienteCtl, 'abrirPeriodo'], ['permiso' => 'expedientes.crear']);
+    $r->get('/expedientes/imprimir', [$impresionCtl, 'varios'], ['permiso' => 'expedientes.ver']);
     $r->get('/expedientes/{id}', [$expedienteCtl, 'ver'], ['permiso' => 'expedientes.ver']);
+    $r->get('/expedientes/{id}/imprimir', [$impresionCtl, 'uno'], ['permiso' => 'expedientes.ver']);
     $r->get('/expedientes/{id}/dia', [$expedienteCtl, 'dia'], ['permiso' => 'asistencias.registrar']);
     $r->post('/expedientes/{id}/dia', [$expedienteCtl, 'guardarDia'], ['permiso' => 'asistencias.registrar']);
     $r->post('/expedientes/{id}/firmas', [$expedienteCtl, 'firma'], ['permiso' => 'asistencias.registrar']);
@@ -140,6 +144,7 @@ function crearAplicacion(Config $config): Aplicacion
     $r->get('/dias-inhabiles', [$catalogoCtl, 'index'], ['permiso' => 'catalogo.ver']);
     $r->post('/dias-inhabiles', [$catalogoCtl, 'agregar'], ['permiso' => 'catalogo.editar']);
     $r->post('/dias-inhabiles/{id}/quitar', [$catalogoCtl, 'quitar'], ['permiso' => 'catalogo.editar']);
+    $r->post('/dias-inhabiles/periodo/quitar', [$catalogoCtl, 'quitarPeriodo'], ['permiso' => 'catalogo.editar']);
 
     return new Aplicacion($config, $r, $bd, $sesion, $csrf, $vista, $usuarios, $configuracion, $auth);
 }

@@ -23,7 +23,7 @@ final class CatalogoControlador
 
     public function index(Peticion $p): Respuesta
     {
-        return $this->pagina(['tipo' => 'festivo'], []);
+        return $this->pagina(['tipo' => 'festivo', 'periodo' => ''], []);
     }
 
     public function agregar(Peticion $p): Respuesta
@@ -32,7 +32,14 @@ final class CatalogoControlador
         if (!$r['ok']) {
             return $this->pagina($r['datos'], $r['errores'], 422);
         }
-        $this->sesion->set('aviso', 'Día agregado al catálogo.');
+        $aviso = $r['periodo']
+            ? 'Periodo agregado: ' . $r['agregados'] . ($r['agregados'] === 1 ? ' día hábil.' : ' días hábiles.')
+            : 'Día agregado al catálogo.';
+        if ($r['omitidas'] !== []) {
+            $aviso .= ' Se conservaron como estaban ' . count($r['omitidas']) . ' fecha(s) que ya estaban en el catálogo: '
+                . implode(', ', array_map('fecha_corta', $r['omitidas'])) . '.';
+        }
+        $this->sesion->set('aviso', $aviso);
         return Respuesta::redirigir('/dias-inhabiles');
     }
 
@@ -43,10 +50,19 @@ final class CatalogoControlador
         return Respuesta::redirigir('/dias-inhabiles');
     }
 
+    /** Quita un periodo completo (los ids de sus días). */
+    public function quitarPeriodo(Peticion $p): Respuesta
+    {
+        $ids = $p->cuerpo['ids'] ?? [];
+        $r = $this->servicio->quitarVarios(is_array($ids) ? $ids : []);
+        $this->sesion->set($r['ok'] ? 'aviso' : 'error', $r['ok'] ? 'Periodo quitado del catálogo (' . $r['quitados'] . ' días).' : $r['general']);
+        return Respuesta::redirigir('/dias-inhabiles');
+    }
+
     private function pagina(array $datos, array $errores, int $estado = 200): Respuesta
     {
         return Respuesta::html($this->vista->render('dias_inhabiles', [
-            'titulo' => 'Días inhábiles', 'dias' => $this->dias->todos(), 'datos' => $datos, 'errores' => $errores,
+            'titulo' => 'Días inhábiles', 'grupos' => CatalogoServicio::agrupar($this->dias->todos()), 'datos' => $datos, 'errores' => $errores,
             'aviso' => $this->sesion->tomar('aviso'), 'falla' => $this->sesion->tomar('error'),
         ]), $estado);
     }

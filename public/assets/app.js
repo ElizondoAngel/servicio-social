@@ -197,3 +197,33 @@ var BASE = (document.body && document.body.dataset.base) || '';
     s.addEventListener('change', function () { form.submit(); });
   });
 })();
+
+// Días inhábiles: la fecha final solo se muestra al marcar "Periodo vacacional".
+(function () {
+  'use strict';
+  var casilla = document.querySelector('.js-periodo');
+  if (!casilla) { return; }
+  var form = casilla.form;
+  var tipo = form.querySelector('select[name="tipo"]');
+  function actualizar(cambio) {
+    var periodo = casilla.checked;
+    form.querySelectorAll('.js-solo-periodo').forEach(function (el) { el.hidden = !periodo; });
+    form.querySelectorAll('.js-etq-periodo').forEach(function (el) { el.hidden = !periodo; });
+    form.querySelectorAll('.js-etq-uno').forEach(function (el) { el.hidden = periodo; });
+    var fin = form.querySelector('#fecha_fin');
+    if (fin) { fin.required = periodo; }
+    // Las vacaciones son cierre de oficina; se propone al marcar la casilla.
+    if (cambio && periodo && tipo) { tipo.value = 'cierre'; }
+  }
+  casilla.addEventListener('change', function () { actualizar(true); });
+  actualizar(false);
+})();
+
+// Impresión: el botón abre el diálogo de imprimir del navegador.
+(function () {
+  'use strict';
+  document.querySelectorAll('.js-imprimir').forEach(function (b) {
+    b.hidden = false;
+    b.addEventListener('click', function () { window.print(); });
+  });
+})();

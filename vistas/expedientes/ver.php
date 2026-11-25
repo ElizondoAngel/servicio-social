@@ -31,6 +31,7 @@ $meses = (int)$x['meses_requeridos'];
     <div class="eyebrow">Matrícula <?= e($alumno['matricula']) ?> · <?= e($alumno['carrera']) ?></div>
     <h1><?= e(nombre_completo($alumno)) ?></h1>
   </div>
+  <a class="btn chico" href="/expedientes/<?= (int)$x['id'] ?>/imprimir">Imprimir expediente</a>
   <?php if (count($periodos) > 1): ?>
   <div class="periodos" aria-label="Periodos del alumno">
     <?php foreach ($periodos as $per): ?>

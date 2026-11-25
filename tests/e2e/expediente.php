@@ -270,6 +270,74 @@ prueba('quitar un día del catálogo sin usar', function () use ($n, $CSRF, $cie
     igual(0, (int)$root->query("SELECT COUNT(*) FROM dias_inhabiles WHERE id = $id")->fetchColumn());
 });
 
+seccion('Periodos vacacionales en el catálogo');
+prueba('periodo: valida la fecha final', function () use ($n, $CSRF) {
+    $base = ['_csrf' => $CSRF, 'periodo' => '1', 'tipo' => 'cierre', 'descripcion' => 'E2E vacaciones'];
+    contiene('Escribe la fecha final', $n->post('/dias-inhabiles', $base + ['fecha' => '2031-12-18'])['cuerpo']);
+    contiene('igual o posterior', $n->post('/dias-inhabiles', $base + ['fecha' => '2031-12-18', 'fecha_fin' => '2031-12-01'])['cuerpo']);
+    contiene('como máximo', $n->post('/dias-inhabiles', $base + ['fecha' => '2031-01-01', 'fecha_fin' => '2031-12-31'])['cuerpo']);
+    contiene('no tiene días de lunes a viernes', $n->post('/dias-inhabiles', $base + ['fecha' => '2031-12-20', 'fecha_fin' => '2031-12-21'])['cuerpo']);
+});
+prueba('periodo del 18 dic al 5 ene: solo lunes a viernes y conserva un festivo existente', function () use ($n, $CSRF, $root) {
+    igual(303, $n->post('/dias-inhabiles', ['_csrf' => $CSRF, 'fecha' => '2031-12-25', 'tipo' => 'festivo', 'descripcion' => 'E2E Navidad'])['estado']);
+    $r = $n->post('/dias-inhabiles', ['_csrf' => $CSRF, 'periodo' => '1', 'tipo' => 'cierre', 'descripcion' => 'E2E vacaciones',
+        'fecha' => '2031-12-18', 'fecha_fin' => '2032-01-05']);
+    igual(303, $r['estado']);
+    $q = $root->query("SELECT fecha FROM dias_inhabiles WHERE descripcion = 'E2E vacaciones' ORDER BY fecha")->fetchAll(PDO::FETCH_COLUMN);
+    igual(12, count($q), '13 días hábiles menos el festivo');
+    igual(['2031-12-18', '2032-01-05'], [$q[0], end($q)]);
+    igual(0, (int)$root->query("SELECT COUNT(*) FROM dias_inhabiles WHERE descripcion = 'E2E vacaciones' AND DAYOFWEEK(fecha) IN (1, 7)")->fetchColumn(), 'sin fines de semana');
+    igual('festivo', $root->query("SELECT tipo FROM dias_inhabiles WHERE fecha = '2031-12-25'")->fetchColumn());
+    $c = $n->get('/dias-inhabiles')['cuerpo'];
+    contiene('Periodo agregado: 12 días hábiles', $c);
+    contiene('25 dic 2031', $c);
+    contiene('18 dic 2031 – 24 dic 2031', $c, 'el festivo parte el periodo en dos renglones');
+    contiene('26 dic 2031 – 5 ene 2032', $c);
+    contiene('Quitar periodo', $c);
+});
+prueba('repetir el mismo periodo: no hay nada que agregar', function () use ($n, $CSRF) {
+    contiene('ya están en el catálogo', $n->post('/dias-inhabiles', ['_csrf' => $CSRF, 'periodo' => '1', 'tipo' => 'cierre',
+        'descripcion' => 'E2E vacaciones', 'fecha' => '2031-12-18', 'fecha_fin' => '2032-01-05'])['cuerpo']);
+});
+prueba('quitar un periodo completo', function () use ($n, $CSRF, $root) {
+    $ids = $root->query("SELECT id FROM dias_inhabiles WHERE descripcion = 'E2E vacaciones' AND fecha > '2031-12-25'")->fetchAll(PDO::FETCH_COLUMN);
+    igual(303, $n->post('/dias-inhabiles/periodo/quitar', ['_csrf' => $CSRF, 'ids' => $ids])['estado']);
+    igual(5, (int)$root->query("SELECT COUNT(*) FROM dias_inhabiles WHERE descripcion = 'E2E vacaciones'")->fetchColumn());
+    contiene('Periodo quitado del catálogo (' . count($ids) . ' días)', $n->get('/dias-inhabiles')['cuerpo']);
+    $resto = $root->query("SELECT id FROM dias_inhabiles WHERE descripcion IN ('E2E vacaciones', 'E2E Navidad')")->fetchAll(PDO::FETCH_COLUMN);
+    $n->post('/dias-inhabiles/periodo/quitar', ['_csrf' => $CSRF, 'ids' => array_merge($resto, [999999])]);
+    igual(count($resto), (int)$root->query("SELECT COUNT(*) FROM dias_inhabiles WHERE descripcion IN ('E2E vacaciones', 'E2E Navidad')")->fetchColumn(), 'si uno falla no se quita ninguno');
+    $n->post('/dias-inhabiles/periodo/quitar', ['_csrf' => $CSRF, 'ids' => $resto]);
+    igual(0, (int)$root->query("SELECT COUNT(*) FROM dias_inhabiles WHERE descripcion IN ('E2E vacaciones', 'E2E Navidad')")->fetchColumn());
+});
+
+seccion('Impresión');
+prueba('un expediente: plantilla sin menú, con datos, bitácora y firmas', function () use ($n, $E) {
+    $r = $n->get("/expedientes/$E/imprimir");
+    igual(200, $r['estado']);
+    $c = $r['cuerpo'];
+    foreach (['Expediente de servicio social', 'Datos del alumno', 'Datos del periodo', 'Resumen de horas', 'Bitácora de asistencia',
+              'Hoja 1', 'Notas de los registros', 'Vo. Bo. Coordinación de Servicio Social', 'impresion.css', 'js-imprimir'] as $t) {
+        contiene($t, $c);
+    }
+    noContiene('class="nav"', $c);
+    noContiene('<form', $c, 'la impresión no tiene formularios');
+});
+prueba('expediente inexistente: 404', fn() => igual(404, $n->get('/expedientes/999999/imprimir')['estado']));
+prueba('varios: los mismos que el tablero con su filtro', function () use ($n) {
+    $todos = $n->get('/expedientes/imprimir');
+    igual(200, $todos['estado']);
+    verdadero(substr_count($todos['cuerpo'], '<article class="documento">') >= 1, 'al menos un expediente');
+    $nada = $n->get('/expedientes/imprimir?q=' . rawurlencode('zzz-nadie-se-llama-asi'));
+    contiene('No hay expedientes con esa búsqueda o filtro', $nada['cuerpo']);
+    contiene('href="/?q=zzz-nadie-se-llama-asi"', $nada['cuerpo'], 'volver conserva la búsqueda');
+});
+prueba('botones de imprimir en el tablero y en el expediente', function () use ($n, $E) {
+    contiene('href="/expedientes/imprimir"', $n->get('/')['cuerpo']);
+    contiene('href="/expedientes/imprimir?filtro=activos"', $n->get('/?filtro=activos')['cuerpo']);
+    contiene("href=\"/expedientes/$E/imprimir\"", $n->get("/expedientes/$E")['cuerpo']);
+});
+
 seccion('Datos y ajustes del expediente');
 $datosExp = fn(array $cambios = []) => $cambios + [
     '_csrf' => $CSRF, 'version' => (string)$exp()['version'], 'unidad_administrativa' => 'Unidad de prueba', 'responsable' => 'Responsable de prueba',

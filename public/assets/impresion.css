@@ -1,0 +1,76 @@
+/* Plantilla de impresión de expedientes. Siempre en claro: es papel. */
+:root {
+  --ink: #18262F; --muted: #5E6E77; --line: #B9C6C1; --suave: #EEF2EF; --ok: #1F7A5C; --bad: #C2412D; --hol: #2F6FB5;
+  --display: "Space Grotesk", system-ui, sans-serif; --body: Inter, system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body.impresion { margin: 0; background: #E4E9E6; color: var(--ink); font: 11pt/1.4 var(--body); }
+
+.barra-impresion { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--line); }
+.barra-impresion p { margin: 0; flex: 1; min-width: 200px; color: var(--muted); font-size: 14px; }
+.btn { font: 600 14px var(--body); border-radius: 10px; padding: 9px 14px; border: 1px solid var(--line); background: #fff; color: var(--ink);
+  cursor: pointer; text-decoration: none; display: inline-block; }
+.btn.primario { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn:focus-visible { outline: 3px solid var(--hol); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.vacio { text-align: center; padding: 48px 16px; color: var(--muted); }
+
+/* Cada expediente es una hoja tamaño carta */
+.documento { background: #fff; width: 100%; max-width: 21.59cm; margin: 16px auto; padding: 1.4cm 1.5cm; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.doc-encabezado { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; border-bottom: 2px solid var(--ok); padding-bottom: 10px; margin-bottom: 14px; }
+.doc-sello { width: 46px; height: 46px; border-radius: 10px; background: var(--ok); color: #fff; display: grid; place-items: center; font: 700 18px var(--display); }
+.doc-institucion { font-size: 9pt; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.documento h1 { font: 700 17pt var(--display); margin: 2px 0 0; }
+.doc-fecha { text-align: right; font-size: 9pt; color: var(--muted); }
+
+.bloque { margin: 0 0 14px; }
+.bloque h2 { font: 600 11.5pt var(--display); margin: 0 0 6px; padding-bottom: 3px; border-bottom: 1px solid var(--line); }
+.datos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; margin: 0; }
+.datos div { display: flex; gap: 8px; min-width: 0; }
+.datos dt { color: var(--muted); font-size: 9pt; min-width: 9.5em; padding-top: 1px; }
+.datos dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.leyenda { font-size: 8.5pt; color: var(--muted); margin: 0 0 6px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid var(--line); padding: 3px 5px; vertical-align: middle; }
+thead th { background: var(--suave); font-size: 8.5pt; font-weight: 600; text-align: center; }
+.resumen td { text-align: center; font-size: 10pt; }
+
+.bitacora { margin: 0 0 10px; font-size: 9pt; break-inside: avoid; }
+.bitacora caption { text-align: left; font-weight: 600; padding: 4px 0; }
+.bitacora .mes { width: 4.2em; font-size: 8.5pt; background: var(--suave); }
+.bitacora .mes span { font-weight: 400; color: var(--muted); }
+.bitacora .fechas { white-space: nowrap; font-size: 8.5pt; color: var(--muted); width: 7em; }
+.bitacora .c { text-align: center; }
+.bitacora td.c { width: 3.2em; }
+.bitacora .dia-f { color: var(--bad); font-weight: 600; }
+.bitacora .dia-h { color: var(--hol); }
+.bitacora .dia-c { background: #F2F4F3; color: var(--muted); }
+
+.notas { font-size: 9pt; }
+.notas td:first-child { white-space: nowrap; width: 6.5em; }
+.notas td:nth-child(2) { white-space: nowrap; width: 9em; }
+
+.firmas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; text-align: center; font-size: 9.5pt; break-inside: avoid; }
+.firmas .linea { display: block; border-top: 1px solid var(--ink); margin: 34px 6px 4px; }
+.firmas small { color: var(--muted); }
+
+@media (max-width: 640px) {
+  .documento { padding: 16px; margin: 8px auto; }
+  .datos { grid-template-columns: 1fr; }
+  .doc-encabezado { grid-template-columns: auto 1fr; }
+  .doc-fecha { grid-column: 1 / -1; text-align: left; }
+  .bloque { overflow-x: auto; }
+  .firmas { grid-template-columns: 1fr; }
+}
+
+@page { size: letter; margin: 1.2cm 1.3cm; }
+@media print {
+  body.impresion { background: #fff; font-size: 10pt; }
+  .barra-impresion { display: none; }
+  .documento { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+  .documento + .documento { break-before: page; }
+  thead th, .bitacora .mes, .bitacora .dia-c, .doc-sello { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
